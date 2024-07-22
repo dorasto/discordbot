@@ -24,8 +24,8 @@ jobs:
               uses: docker/login-action@v3
               with:
                   registry: ${{ env.REGISTRY }}
-                  username: "doras-to-admin"
-                  password: ${{ secrets.GITHUB_TOKEN }}
+                  username: ${{ secrets.PAT_AUTHOR }}
+                  password: ${{ secrets.PAT_TOKEN }}
 
             - name: Build and push Docker image
               uses: docker/build-push-action@v6

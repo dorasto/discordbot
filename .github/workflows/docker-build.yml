@@ -3,7 +3,7 @@ name: Build Docker Image
 on:
     push:
         branches:
-            - "*"
+            - main
         tags:
             - "v*"
 
@@ -20,3 +20,6 @@ jobs:
               uses: KuhlTime/ghcr-action@v1
               with:
                   token: ${{ secrets.PAT_TOKEN }}
+            - name: Trigger Coolify deployment
+              run: |
+                curl --request GET '${{ secrets.COOLIFY_DISCORDBOT_DEPLOY }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_DISCORDBOT }}'

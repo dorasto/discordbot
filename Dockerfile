@@ -5,8 +5,9 @@ RUN corepack enable
 COPY . /app
 WORKDIR /app
 
-# Add the .env file
-COPY .env /app/.env
+ENV DISCORD_TOKEN=DISCORD_TOKEN
+ENV API_SERVER=API_SERVER
+ENV POSTGRES_URL=POSTGRES_URL
 
 FROM base AS prod-deps
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod

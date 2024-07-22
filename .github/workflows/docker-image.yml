@@ -2,12 +2,12 @@ name: Docker Image CI
 
 on:
     push:
-        branches: ["main"]
+        branches: main
     pull_request:
-        branches: ["main"]
+        branches: main
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
+    IMAGE_NAME: dorasto/discordbot
 jobs:
     build:
         runs-on: ubuntu-latest

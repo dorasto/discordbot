@@ -1,0 +1,10 @@
+{
+    "extends": "next/core-web-vitals",
+    "rules": {
+        "react/no-unescaped-entities": 0,
+        "@next/next/no-img-element": "off",
+        "jsx-a11y/alt-text": 0,
+        "@next/next/google-font-display": "off",
+        "@next/next/no-page-custom-font": "off"
+    }
+}

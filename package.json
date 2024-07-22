@@ -1,0 +1,29 @@
+{
+  "name": "discordbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node build/shard.js",
+    "dev": "nodemon index.ts",
+    "build:start": "npx tsc && node build/shard.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^20.14.11",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.32.0",
+    "nodemon": "^3.1.4",
+    "postgres": "^3.4.4",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.23.0"
+  }
+}

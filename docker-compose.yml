@@ -1,13 +1,8 @@
-version: "3.8"
-
+version: "3"
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
+    evobot:
+        image: ghcr.io/dorasto/discordbot:latest
         environment:
-            - PNPM_HOME=/pnpm
-            - PATH=/pnpm:$PATH
-        volumes:
-            - .:/app
-        command: ["pnpm", "start"]
+            - DISCORD_TOKEN
+            - API_SERVER
+            - POSTGRES_URL

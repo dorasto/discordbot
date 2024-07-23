@@ -34,6 +34,7 @@ discord.on(
                                 social_links: false,
                                 keep_vod: data.keep_vod || false,
                                 mention: data.mention || null,
+                                message: data.message || null,
                             })
                             .returning();
                         if (!dataDB) {

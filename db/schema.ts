@@ -34,4 +34,5 @@ export const discordBotTwitch = pgTable("discord_bot_twitch", {
     social_links: boolean("social_links").default(false).notNull(),
     keep_vod: boolean("keep_vod").default(false).notNull(),
     mention: text("mention"),
+    message: text("message"),
 });

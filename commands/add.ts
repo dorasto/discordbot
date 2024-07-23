@@ -32,6 +32,12 @@ export default {
         .addRoleOption((option) =>
             option.setName("mention").setDescription("Role to notify")
         )
+        .addStringOption((option) =>
+            option
+                .setName("message")
+                .setDescription("Message to send")
+                .setRequired(false)
+        )
         .addBooleanOption((option) =>
             option
                 .setName("keep_vod")
@@ -48,6 +54,7 @@ export default {
             const channel = inter.options.getChannel("channel");
             const keep_vod = inter.options.getBoolean("keep_vod");
             const mention = inter.options.getRole("mention");
+            const message = inter.options.getString("message");
             try {
                 const dataLiveReq = await fetch(
                     process.env.API_SERVER + "/v2/live/twitch/" + username,
@@ -99,9 +106,9 @@ export default {
                     channel: channel?.id || "",
                     server: inter.guild?.id || "",
                     account: inter.user.id,
-                    message: data.id,
                     keep_vod: keep_vod || false,
                     mention: mention?.id || null,
+                    message: message || null,
                 });
             } catch (error) {
                 console.error("Error executing add command: ", error);

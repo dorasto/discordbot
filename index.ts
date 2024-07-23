@@ -46,6 +46,7 @@ discord.on(Events.ClientReady, async () => {
     console_log.colour(discord?.user?.username + " bot is ready", "green");
     await registerSlashCommands();
     setInterval(timeCheck, 1000);
+    TwitchEmbedLoop();
 });
 import "./events/interactionCreate";
 function timeCheck() {
@@ -141,10 +142,10 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
             .setLabel("Watch Stream")
             .setStyle(ButtonStyle.Link)
             .setURL(`https://www.twitch.tv/${item.username.toLowerCase()}`);
-        let buttonLinks = new ButtonBuilder()
-            .setLabel("Social Links")
-            .setStyle(ButtonStyle.Link)
-            .setURL("https://doras.to/trent");
+        // let buttonLinks = new ButtonBuilder()
+        //     .setLabel("Social Links")
+        //     .setStyle(ButtonStyle.Link)
+        //     .setURL("https://doras.to");
         let row: any = new ActionRowBuilder().addComponents(buttonWatch);
         if (!dataLive.live) {
             buttonWatch.setLabel("Watch Vod");
@@ -184,7 +185,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
             return;
         }
         if (!channel.isTextBased()) return;
-        if (item.social_links) row.addComponents(buttonLinks);
+        // if (item.social_links) row.addComponents(buttonLinks);
         let mention: any =
             item.mention && discordServer.roles.cache.get(item.mention);
         if (
@@ -193,7 +194,8 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
         ) {
             mention = mention.name;
         } else {
-            mention = mention ? `<@&${item.mention}>` : "";
+            const message = item.message ? item.message : "";
+            mention = mention ? `<@&${item.mention}> ${message}` : message;
         }
         if (!item.message_id) {
             const message = await channel.send({

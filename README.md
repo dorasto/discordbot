@@ -164,7 +164,7 @@ Project Link: [https://github.com/dorasto/discordbot](https://github.com/dorasto
 [issues-shield]: https://img.shields.io/github/issues/dorasto/discordbot.svg?style=for-the-badge
 [issues-url]: https://github.com/dorasto/discordbot/issues
 [license-shield]: https://img.shields.io/github/license/dorasto/discordbot.svg?style=for-the-badge
-[license-url]: https://github.com/dorasto/discordbot/blob/master/LICENSE
+[license-url]: https://github.com/dorasto/discordbot/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [product-screenshot]: images/screenshot.png
 [Next-url]: https://nextjs.org/

@@ -1,11 +1,16 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+    ChatInputCommandInteraction,
+    PermissionsBitField,
+    SlashCommandBuilder,
+} from "discord.js";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 export default {
     data: new SlashCommandBuilder()
         .setName("list")
-        .setDescription("List all twitch users"),
+        .setDescription("List all twitch users")
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
     async execute(inter: ChatInputCommandInteraction) {
         try {
             await inter.deferReply({

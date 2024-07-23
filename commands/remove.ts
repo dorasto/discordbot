@@ -31,8 +31,8 @@ export default {
                 .setName("channel")
                 .setDescription("Channel to remove it from")
                 .setRequired(true)
-        ),
-    permissions: [PermissionsBitField.Flags.Administrator],
+        )
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
     async execute(inter: ChatInputCommandInteraction) {
         try {
             await inter.deferReply({

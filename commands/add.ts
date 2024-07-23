@@ -37,8 +37,8 @@ export default {
                 .setName("keep_vod")
                 .setDescription("Show the vod from that live")
                 .setRequired(false)
-        ),
-    permissions: [PermissionsBitField.Flags.Administrator],
+        )
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
     async execute(inter: ChatInputCommandInteraction) {
         try {
             await inter.deferReply({

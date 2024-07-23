@@ -9,9 +9,11 @@ import { discord } from "..";
 export default {
     data: new SlashCommandBuilder()
         .setName("uptime")
-        .setDescription("Check the uptime"),
+        .setDescription("Check the uptime")
+        .setDefaultMemberPermissions(
+            PermissionsBitField.Flags.UseApplicationCommands
+        ),
     cooldown: 3,
-    permissions: [PermissionsBitField.Flags.UseApplicationCommands],
     async execute(inter: ChatInputCommandInteraction) {
         try {
             await inter.deferReply();

@@ -3,7 +3,6 @@ import { AddButtonDataTwitch, commands, discord } from "..";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { randomUUID } from "crypto";
-import { checkPermissions, PermissionResult } from "../lib/checkPermissions";
 discord.on(
     Events.InteractionCreate,
     async (interaction: Interaction): Promise<any> => {
@@ -88,16 +87,7 @@ discord.on(
 
         if (!command) return;
         try {
-            const permissionsCheck: PermissionResult = await checkPermissions(
-                command,
-                interaction
-            );
-
-            if (permissionsCheck.result) {
-                command.execute(interaction as ChatInputCommandInteraction);
-            } else {
-                throw new Error(permissionsCheck.missing.join(", "));
-            }
+            command.execute(interaction as ChatInputCommandInteraction);
         } catch (error: any) {
             console.error(error);
             if (error.message.includes("permissions")) {

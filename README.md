@@ -25,6 +25,7 @@
 [![GPL License][license-shield]][license-url]
 
 
+[![Deployments](https://github.com/dorasto/discordbot/actions/workflows/docker-build.yml/badge.svg)](https://github.com/dorasto/discordbot/actions/workflows/docker-build.yml)
 
 <!-- PROJECT LOGO -->
 <br />
@@ -34,7 +35,6 @@
   </a>
 
 <h3 align="center">Doras Discord Bot</h3>
-
   <p align="center">
     A simple livestream notification Discord bot, built by the team who brought you <a href="https://doras.to">Doras.to</a>
     <br />

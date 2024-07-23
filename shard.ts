@@ -1,8 +1,5 @@
 import { ShardingManager } from "discord.js";
-import { config } from "dotenv";
-
-// Load environment variables from .env file (optional)
-config();
+import "dotenv/config";
 
 const token = process.env.DISCORD_TOKEN || "your-token-goes-here";
 const manager = new ShardingManager("./build/index.js", {

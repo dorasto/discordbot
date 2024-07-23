@@ -2,13 +2,8 @@ import {
     ChatInputCommandInteraction,
     PermissionsBitField,
     SlashCommandBuilder,
-    EmbedBuilder,
     ChannelType,
-    ButtonBuilder,
-    ButtonStyle,
-    ActionRowBuilder,
 } from "discord.js";
-import { discord, AddButtonDataTwitch } from "..";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { and, eq } from "drizzle-orm";

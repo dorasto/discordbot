@@ -5,14 +5,12 @@ import {
     GatewayIntentBits,
     Partials,
     Events,
-    PermissionsBitField,
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
     REST,
     Routes,
 } from "discord.js";
-import test from "./test";
 import { readdirSync } from "fs";
 import { join } from "path";
 import { db } from "./db";
@@ -47,7 +45,6 @@ discord.login(process.env.DISCORD_TOKEN);
 discord.on(Events.ClientReady, async () => {
     console_log.colour(discord?.user?.username + " bot is ready", "green");
     await registerSlashCommands();
-    // console.log("servers:", await getServers());
     setInterval(timeCheck, 1000);
 });
 import "./events/interactionCreate";
@@ -55,40 +52,12 @@ function timeCheck() {
     var now = new Date();
     let minute = now.getMinutes();
     let second = now.getSeconds();
-    if (minute % 5 === 0 && second === 0) {
+    if (minute % 10 === 0 && second === 0) {
         TwitchEmbedLoop();
     }
 }
-async function getServers() {
-    let servers = [];
-    for (const [index, server] of test.entries()) {
-        const discordServer = discord.guilds.cache.get(server.id);
-        if (!discordServer) continue;
-
-        const user = discordServer.members.cache.get("446931064506548224");
-        if (!user) continue;
-
-        if (!user.permissions) continue;
-
-        const perms = user.permissions.has(
-            PermissionsBitField.Flags.Administrator,
-            true
-        );
-        if (!perms) continue;
-
-        servers.push({
-            id: server.id,
-            name: server.name,
-            icon: discordServer.iconURL(),
-            member_count: discordServer.memberCount,
-            owner: discordServer.ownerId,
-        });
-    }
-    return servers;
-}
 const TwitchEmbedLoop = async () => {
     const servers = await db.query.discordBotTwitch.findMany();
-    // console.log("🚀 ~ TwitchEmbedLoop ~ servers:", servers);
     console_log.log(`Twitch Embeds Processing ${servers.length} Users`);
     for (const [index, item] of servers.entries()) {
         await twitchLiveEmbeds(item, index);
@@ -247,9 +216,6 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
             .edit(item.message_id, {
                 embeds: [embed],
                 components: [row],
-            })
-            .then(() => {
-                // console.log("Embed edited successfully.");
             })
             .catch(async (error) => {
                 const message = await channel.send({

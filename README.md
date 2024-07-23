@@ -30,7 +30,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/dorasto/discordbot">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="https://cdn.doras.to/doras/doras-logo-text.webp" alt="Logo">
   </a>
 
 <h3 align="center">Doras Discord Bot</h3>

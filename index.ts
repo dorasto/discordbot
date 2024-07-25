@@ -82,6 +82,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
+                    "User-Agent": "discordbot",
                 },
             }
         );

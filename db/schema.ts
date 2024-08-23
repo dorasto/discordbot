@@ -35,4 +35,5 @@ export const discordBotTwitch = pgTable("discord_bot_twitch", {
     keep_vod: boolean("keep_vod").default(false).notNull(),
     mention: text("mention"),
     message: text("message"),
+    vod_id: text("vod_id"),
 });

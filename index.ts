@@ -17,6 +17,7 @@ import { db } from "./db";
 import * as schema from "./db/schema";
 import { ITwitch } from "./types";
 import { eq } from "drizzle-orm";
+import cron from "node-cron";
 export const AddButtonDataTwitch = new Map();
 export const discord = new Client({
     intents: [
@@ -45,8 +46,11 @@ discord.login(process.env.DISCORD_TOKEN);
 discord.on(Events.ClientReady, async () => {
     console_log.colour(discord?.user?.username + " bot is ready", "green");
     await registerSlashCommands();
-    setInterval(timeCheck, 1000);
-    TwitchEmbedLoop();
+    // setInterval(timeCheck, 1000);
+    // TwitchEmbedLoop();
+    cron.schedule("*/10 * * * *", () => {
+        TwitchEmbedLoop();
+    });
 });
 import "./events/interactionCreate";
 function timeCheck() {
@@ -54,9 +58,10 @@ function timeCheck() {
     let minute = now.getMinutes();
     let second = now.getSeconds();
     if (minute % 10 === 0 && second === 0) {
-        TwitchEmbedLoop();
+        // TwitchEmbedLoop();
     }
 }
+// run every 10 minutes
 const TwitchEmbedLoop = async () => {
     const servers = await db.query.discordBotTwitch.findMany();
     console_log.log(`Twitch Embeds Processing ${servers.length} Users`);
@@ -95,6 +100,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                     .update(schema.discordBotTwitch)
                     .set({
                         message_id: null,
+                        vod_id: null,
                     })
                     .where(eq(schema.discordBotTwitch.id, item.id));
                 return;
@@ -143,12 +149,11 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
             .setLabel("Watch Stream")
             .setStyle(ButtonStyle.Link)
             .setURL(`https://www.twitch.tv/${item.username.toLowerCase()}`);
-        // let buttonLinks = new ButtonBuilder()
-        //     .setLabel("Social Links")
-        //     .setStyle(ButtonStyle.Link)
-        //     .setURL("https://doras.to");
         let row: any = new ActionRowBuilder().addComponents(buttonWatch);
         if (!dataLive.live) {
+            if (dataLive.video.id !== item.vod_id) {
+                return;
+            }
             buttonWatch.setLabel("Watch Vod");
             buttonWatch.setURL(dataLive.video.url);
             if (!channel.isTextBased()) return;
@@ -181,6 +186,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                 .update(schema.discordBotTwitch)
                 .set({
                     message_id: null,
+                    vod_id: null,
                 })
                 .where(eq(schema.discordBotTwitch.id, item.id));
             return;
@@ -209,6 +215,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                     .update(schema.discordBotTwitch)
                     .set({
                         message_id: message.id,
+                        vod_id: dataLive.id,
                     })
                     .where(eq(schema.discordBotTwitch.id, item.id));
                 return;
@@ -231,6 +238,7 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                         .update(schema.discordBotTwitch)
                         .set({
                             message_id: message.id,
+                            vod_id: dataLive.id,
                         })
                         .where(eq(schema.discordBotTwitch.id, item.id));
                     return;

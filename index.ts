@@ -151,9 +151,6 @@ const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
             .setURL(`https://www.twitch.tv/${item.username.toLowerCase()}`);
         let row: any = new ActionRowBuilder().addComponents(buttonWatch);
         if (!dataLive.live) {
-            if (dataLive.video.id !== item.vod_id) {
-                return;
-            }
             buttonWatch.setLabel("Watch Vod");
             buttonWatch.setURL(dataLive.video.url);
             if (!channel.isTextBased()) return;

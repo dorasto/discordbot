@@ -17,14 +17,16 @@ import { join } from "path";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import {
+    IKick,
     ITwitch,
     IYoutubeLatest,
     IYoutubeLatestShort,
     IYoutubeLive,
 } from "./types";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import cron from "node-cron";
 export const AddButtonDataTwitch = new Map();
+export const AddButtonDataKick = new Map();
 export const AddButtonDataYoutubeLive = new Map();
 export const AddButtonDataYoutubeLatest = new Map();
 export const AddButtonDataYoutubeLatestShort = new Map();
@@ -36,11 +38,12 @@ export const discord = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildWebhooks,
         GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.GuildExpressions,
         GatewayIntentBits.GuildIntegrations,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.DirectMessageReactions,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.MessageContent,
     ],
     partials: [
         Partials.Message,
@@ -57,6 +60,7 @@ discord.on(Events.ClientReady, async () => {
     await registerSlashCommands();
     const task = cron.schedule("*/10 * * * *", async () => {
         await TwitchEmbedLoop();
+        await KickEmbedLoop();
         await youtubeLiveEmbedLoop();
         await youtubeLatestEmbedLoop();
         await youtubeLatestShortEmbedLoop();
@@ -75,7 +79,50 @@ discord.on(Events.ClientReady, async () => {
         console_log.log("Twitch EventSub Enabled");
         await TwitchEmbedLoopStart();
     }
+    await KickEmbedLoopStart();
 });
+// discord.on("messageCreate", async (message) => {
+//     if (message.content === "stream-info") {
+//         const discordServer = discord.guilds.cache.get("636803646536810496");
+//         if (!discordServer) {
+//             return;
+//         }
+//         const channel = discordServer.channels.cache.get("1327873623951933522");
+//         if (!channel) {
+//             return;
+//         }
+//         if (!channel.isTextBased()) return;
+//         channel.messages.edit("1382250549470171276", {
+//             flags: 32768,
+//             components: [
+//                 {
+//                     type: 3,
+//                     //@ts-expect-error
+//                     custom_id: "string_select",
+//                     placeholder: "Favorite bug?",
+//                     options: [
+//                         {
+//                             label: "Ant",
+//                             value: "ant",
+//                             description: "(best option)",
+//                             emoji: { name: "🐜" },
+//                         },
+//                         {
+//                             label: "Butterfly",
+//                             value: "butterfly",
+//                             emoji: { name: "🦋" },
+//                         },
+//                         {
+//                             label: "Catarpillar",
+//                             value: "caterpillar",
+//                             emoji: { name: "🐛" },
+//                         },
+//                     ],
+//                 },
+//             ],
+//         });
+//     }
+// });
 const TwitchEmbedLoopStart = async () => {
     const items = await db.query.discordBotTwitch.findMany();
     console_log.log(`Twitch EventSub Processing ${items.length} Users`);
@@ -89,19 +136,42 @@ const TwitchEmbedLoopStart = async () => {
         `Twitch EventSub Finished Processing ${items.length} Users`
     );
 };
-
+const KickEmbedLoopStart = async () => {
+    const items = await db
+        .select()
+        .from(schema.discordBotKick)
+        .where(isNull(schema.discordBotKick.sub_id))
+        .execute();
+    console_log.log(`Kick EventSub Processing ${items.length} Users`);
+    for (const [index, item] of items.entries()) {
+        console_log.log(
+            `Kick EventSub Processing for ${index + 1}: ${item.username}`
+        );
+        const eventSub = await createEventSubSubscriptionKick(
+            item.username,
+            "livestream.status.updated"
+        );
+        if (eventSub) {
+            await db
+                .update(schema.discordBotKick)
+                .set({ sub_id: eventSub })
+                .where(eq(schema.discordBotKick.id, item.id));
+        }
+    }
+    console_log.log(`Kick EventSub Finished Processing ${items.length} Users`);
+};
 import "./events/interactionCreate";
 import "./server";
 import { createEventSubSubscription } from "./twitch";
-import { discordBotTwitch } from "./db/schema";
+import { createEventSubSubscriptionKick } from "./kick";
 // run every 10 minutes
 const TwitchEmbedLoop = async () => {
     if (process.env.TWITCH_EVENTSUB == "true") {
         console_log.log("Twitch embed check eventsub");
         const servers = await db
             .select()
-            .from(discordBotTwitch)
-            .where(eq(discordBotTwitch.live, true))
+            .from(schema.discordBotTwitch)
+            .where(eq(schema.discordBotTwitch.live, true))
             .execute();
         console_log.log(
             `Twitch Embeds Processing ${servers.length} Live Users`
@@ -128,6 +198,27 @@ const TwitchEmbedLoop = async () => {
         }
         console_log.log(
             `Twitch Embeds Finished Processing ${servers.length} Users`
+        );
+    }
+};
+const KickEmbedLoop = async () => {
+    if (process.env.TWITCH_EVENTSUB == "true") {
+        console_log.log("Kick embed check eventsub");
+        const servers = await db
+            .select()
+            .from(schema.discordBotKick)
+            .where(eq(schema.discordBotKick.live, true))
+            .execute();
+        console_log.log(`Kick Embeds Processing ${servers.length} Live Users`);
+        for (const [index, item] of servers.entries()) {
+            try {
+                await kickLiveEmbeds(item, index);
+            } catch (error) {
+                console.error(`Error processing ${item.username}:`, error);
+            }
+        }
+        console_log.log(
+            `Kick Embeds Finished Processing ${servers.length} Live Users`
         );
     }
 };
@@ -403,6 +494,248 @@ export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
     } catch (error) {
         console.log(error);
         console_log.error(`Twitch ${item.username}: catch: ` + error);
+        return;
+    }
+};
+export const kickLiveEmbeds = async (item: IKick, index: number) => {
+    console_log.log(
+        `Processed Kick Live Embed for ${index + 1}: ${item.username}`
+    );
+    const discordServer = discord.guilds.cache.get(item.server_id);
+    if (!discordServer) {
+        console_log.error(
+            `Discord Server not found for ${item.username} server: ${item.server_id}`
+        );
+        return;
+    }
+    const channel = discordServer.channels.cache.get(item.channel_id);
+    if (!channel) {
+        console_log.error(
+            `Discord Channel not found for ${item.username} server: ${item.server_id}`
+        );
+        return;
+    }
+    try {
+        const dataLiveReq = await fetch(
+            process.env.API_SERVER + "/v2/live/kickv2/" + item.username,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": "doras.to discordbot",
+                },
+            }
+        );
+        const dataLive = await dataLiveReq.json();
+        if (dataLive.error) {
+            console_log.error(
+                `Kick Error getting data for ${item.username} ` +
+                    dataLive.message
+            );
+            return;
+        }
+        let embed: any = {
+            color: parseInt("53fc18", 16),
+            url: `https://kick.com/${item.username.toLowerCase()}`,
+            title: dataLive.title,
+            author: {
+                name: `${item.username} is now live on Kick!`,
+                url: `https://kick.com/${item.username.toLowerCase()}`,
+                iconURL:
+                    "https://cdn.doras.to/doras/kick-streaming-platform-logo-icon.png",
+            },
+            thumbnail: {
+                url: dataLive.user.profile_image,
+            },
+            fields: [
+                {
+                    name: "Category",
+                    value: dataLive.category,
+                    inline: true,
+                },
+                {
+                    name: "Viewers",
+                    value: formatViewersCount(dataLive.viewers),
+                    inline: true,
+                },
+                {
+                    name: "Live Since",
+                    value: `<t:${isoToUnix(dataLive.started_at)}:R>`,
+                    inline: true,
+                },
+            ],
+            image: {
+                url: dataLive.image,
+            },
+            timestamp: new Date(),
+            footer: {
+                text: "doras.to",
+                iconURL: "https://cdn.doras.to/doras/icons/light/doras.webp",
+            },
+        };
+        const url = `https://kick.com/${item.username?.toLowerCase()}`;
+        let buttonWatch = new ButtonBuilder()
+            .setLabel("Watch Stream")
+            .setStyle(ButtonStyle.Link)
+            .setURL(String(url)); // Explicitly convert to string
+        let row: any = new ActionRowBuilder().addComponents(buttonWatch);
+        let buttonLinks =
+            (item.social_link_url &&
+                new ButtonBuilder()
+                    .setLabel("Social Links")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(
+                        "https://doras.to/" + item.social_link_url || ""
+                    )) ||
+            "";
+        if (item.social_links && item.social_link_url)
+            buttonLinks && row.addComponents(buttonLinks);
+        if (!dataLive.live) {
+            if (!item.keep_vod) {
+                if (item.message_id) {
+                    if (!channel.isTextBased()) return;
+                    await channel.messages
+                        .delete(item.message_id)
+                        .catch((e) => {
+                            console_log.error(
+                                `Kick ${item.username}: Error deleting message: ` +
+                                    e
+                            );
+                        });
+                    await db
+                        .update(schema.discordBotKick)
+                        .set({
+                            message_id: null,
+                            vod_id: null,
+                            live: false,
+                            last_live: new Date().toISOString(),
+                            live_started_at: null,
+                        })
+                        .where(eq(schema.discordBotKick.id, item.id));
+                    return;
+                }
+                return;
+            }
+            if (item.vod_id === dataLive.video.live_id) {
+                buttonWatch.setLabel("Watch Vod");
+                dataLive.video.url &&
+                    buttonWatch.setURL(String(dataLive.video.url));
+                if (!channel.isTextBased()) return;
+                embed.url = dataLive.video.url;
+                embed.title = dataLive.video.title;
+                embed.author = {
+                    name: `${item.username} is offline`,
+                    url: dataLive.video.url,
+                    icon_url:
+                        "https://cdn.doras.to/doras/kick-streaming-platform-logo-icon.png",
+                };
+                embed.fields = [
+                    {
+                        name: "Vod Duration",
+                        value: `${dataLive.video.duration}`,
+                    },
+                ];
+                embed.image = {
+                    url: dataLive.video.thumbnail_url,
+                };
+                if (item.message_id) {
+                    if (item.keep_vod) {
+                        await channel.messages.edit(item.message_id, {
+                            embeds: [embed],
+                            components: [row],
+                        });
+                    }
+                }
+                await db
+                    .update(schema.discordBotKick)
+                    .set({
+                        message_id: null,
+                        vod_id: null,
+                        live: false,
+                        last_live: new Date().toISOString(),
+                        live_started_at: null,
+                    })
+                    .where(eq(schema.discordBotKick.id, item.id));
+                return;
+            } else {
+                await db
+                    .update(schema.discordBotKick)
+                    .set({
+                        message_id: null,
+                        vod_id: null,
+                        live: false,
+                        last_live: new Date().toISOString(),
+                        live_started_at: null,
+                    })
+                    .where(eq(schema.discordBotKick.id, item.id));
+                return;
+            }
+        }
+        if (!channel.isTextBased()) return;
+        let mention: any;
+        try {
+            mention =
+                item.mention && discordServer.roles.cache.get(item.mention);
+        } catch (error) {
+            console_log.error(
+                `Kick ${item.username}: Error getting mention: ` + error
+            );
+        }
+        if (
+            (mention && mention.name == "@everyone") ||
+            (mention && mention.name == "@here")
+        ) {
+            mention = mention.name;
+        } else {
+            const message = item.message ? item.message : "";
+            mention = mention ? `<@&${item.mention}> ${message}` : message;
+        }
+        if (!item.message_id) {
+            const message = await channel.send({
+                content: item.message || "",
+                embeds: [embed],
+                components: [row],
+            });
+            if (message.id) {
+                await db
+                    .update(schema.discordBotKick)
+                    .set({
+                        message_id: message.id,
+                        vod_id: dataLive.id,
+                        live: true,
+                        live_started_at: dataLive.started_at,
+                    })
+                    .where(eq(schema.discordBotKick.id, item.id));
+                return;
+            }
+            return;
+        }
+        await channel.messages
+            .edit(item.message_id, {
+                content: mention,
+                embeds: [embed],
+                components: [row],
+            })
+            .catch(async (error) => {
+                const message = await channel.send({
+                    content: mention,
+                    embeds: [embed],
+                    components: [row],
+                });
+                if (message.id) {
+                    await db
+                        .update(schema.discordBotKick)
+                        .set({
+                            message_id: message.id,
+                            vod_id: dataLive.id,
+                        })
+                        .where(eq(schema.discordBotKick.id, item.id));
+                    return;
+                }
+            });
+    } catch (error) {
+        console.log(error);
+        console_log.error(`Kick ${item.username}: catch: ` + error);
         return;
     }
 };

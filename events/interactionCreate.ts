@@ -1,17 +1,21 @@
 import { ChatInputCommandInteraction, Events, Interaction } from "discord.js";
 import {
+    AddButtonDataKick,
     AddButtonDataTwitch,
     AddButtonDataYoutubeLatest,
     AddButtonDataYoutubeLatestShort,
     AddButtonDataYoutubeLive,
     commands,
     discord,
+    kickLiveEmbeds,
     twitchLiveEmbeds,
 } from "..";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { randomUUID } from "crypto";
 import { createEventSubSubscription } from "../twitch";
+import { createEventSubSubscriptionKick } from "../kick";
+import { eq } from "drizzle-orm";
 discord.on(
     Events.InteractionCreate,
     async (interaction: Interaction): Promise<any> => {
@@ -76,6 +80,76 @@ discord.on(
                         break;
                     case "reject-twitch":
                         AddButtonDataTwitch.delete(interaction.message.id);
+                        await interaction.reply({
+                            content: "User has rejected",
+                            ephemeral: true,
+                        });
+                        break;
+                    case "accept-kick":
+                        const dataKick = AddButtonDataKick.get(
+                            interaction.message.id
+                        );
+                        if (!dataKick) {
+                            await interaction.reply({
+                                content: "Button pressed but no data found.",
+                                ephemeral: true,
+                            });
+                            AddButtonDataTwitch.delete(interaction.message.id);
+                            return;
+                        }
+                        const dataDBKick = await db
+                            .insert(schema.discordBotKick)
+                            .values({
+                                id: randomUUID(),
+                                account_id: interaction.user.id,
+                                channel_id: dataKick?.channel || "",
+                                server_id: dataKick.server || "",
+                                username: dataKick.username || "",
+                                message_id: null,
+                                social_links: false,
+                                keep_vod: dataKick.keep_vod || false,
+                                mention: dataKick.mention || null,
+                                message: dataKick.message || null,
+                                sub_id: "",
+                            })
+                            .returning();
+                        if (!dataDBKick) {
+                            await interaction.reply({
+                                content:
+                                    "There was an error executing the command.",
+                                ephemeral: true,
+                            });
+                            AddButtonDataKick.delete(interaction.message.id);
+                            return;
+                        } else {
+                            await interaction.reply({
+                                content: `${dataKick.username} has been added to the database.`,
+                                ephemeral: true,
+                            });
+                            const item = dataDBKick[0];
+                            const eventSub =
+                                await createEventSubSubscriptionKick(
+                                    item.username,
+                                    "livestream.status.updated"
+                                );
+                            await kickLiveEmbeds(item, -50);
+                            if (eventSub) {
+                                await db
+                                    .update(schema.discordBotKick)
+                                    .set({ sub_id: eventSub })
+                                    .where(
+                                        eq(schema.discordBotKick.id, item.id)
+                                    );
+                                AddButtonDataKick.delete(
+                                    interaction.message.id
+                                );
+                                return;
+                            }
+                            AddButtonDataKick.delete(interaction.message.id);
+                            return;
+                        }
+                    case "reject-kick":
+                        AddButtonDataKick.delete(interaction.message.id);
                         await interaction.reply({
                             content: "User has rejected",
                             ephemeral: true,

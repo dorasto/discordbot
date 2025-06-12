@@ -130,3 +130,4 @@ build
 .pnp.*
 pnpm-lock.yaml
 TwitchToken.json
+KickToken.json

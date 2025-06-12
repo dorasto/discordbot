@@ -8,6 +8,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { and, eq } from "drizzle-orm";
 import { deleteEventSubSubscription } from "../twitch";
+import { deleteEventSubSubscriptionKick } from "../kick";
 export default {
     data: new SlashCommandBuilder()
         .setName("remove")
@@ -18,6 +19,7 @@ export default {
                 .setDescription("Choose the platform")
                 .addChoices([
                     { name: "Twitch", value: "twitch" },
+                    { name: "Kick", value: "kick" },
                     { name: "YouTube Live", value: "youtube-live" },
                     { name: "YouTube Latest", value: "youtube-latest" },
                     { name: "Youtube Short", value: "youtube-short-latest" },
@@ -95,6 +97,37 @@ export default {
                                     schema.discordBotTwitch.channel_id,
                                     channel.id
                                 )
+                            )
+                        )
+                        .returning();
+                    if (data.length === 0) {
+                        await inter.editReply({
+                            content: "User not found",
+                        });
+                        return;
+                    }
+                    await inter.editReply({
+                        content: "User removed",
+                    });
+                }
+                if (platform === "kick") {
+                    const check = await db
+                        .select()
+                        .from(schema.discordBotKick)
+                        .where(eq(schema.discordBotKick.username, username));
+                    if (check.length <= 1) {
+                        await deleteEventSubSubscriptionKick(check[0].sub_id);
+                    }
+                    const data = await db
+                        .delete(schema.discordBotKick)
+                        .where(
+                            and(
+                                eq(
+                                    schema.discordBotKick.server_id,
+                                    inter.guildId
+                                ),
+                                eq(schema.discordBotKick.username, username),
+                                eq(schema.discordBotKick.channel_id, channel.id)
                             )
                         )
                         .returning();

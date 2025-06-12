@@ -1,5 +1,5 @@
 import * as console_log from "./utils/logs";
-import { discord, twitchLiveEmbeds } from ".";
+import { discord, kickLiveEmbeds, twitchLiveEmbeds } from ".";
 import { Context, Hono } from "hono";
 import { serve } from "@hono/node-server";
 import crypto from "crypto";
@@ -10,6 +10,7 @@ import {
     validateBodyConnectionRemove,
 } from "./utils/v1-api";
 import {
+    discordBotKick,
     discordBotTwitch,
     discordBotYoutubeLatest,
     discordBotYoutubeLatestShort,
@@ -25,6 +26,10 @@ import {
     deleteEventSubSubscription,
     getSecret,
 } from "./twitch";
+import {
+    createEventSubSubscriptionKick,
+    deleteEventSubSubscriptionKick,
+} from "./kick";
 //web server
 const baseHeaders = {
     "X-Service-Name": "DorasBot",
@@ -91,6 +96,11 @@ app.get("/api/v1/get_all_connections", async (c) => {
                     .from(discordBotTwitch)
                     .where(eq(discordBotTwitch.server_id, e.id))
                     .execute();
+                const kick = await db
+                    .select()
+                    .from(discordBotKick)
+                    .where(eq(discordBotKick.server_id, e.id))
+                    .execute();
                 const youtubeLatest = await db
                     .select()
                     .from(discordBotYoutubeLatest)
@@ -135,6 +145,7 @@ app.get("/api/v1/get_all_connections", async (c) => {
                         created_at: member.joinedAt,
                     })),
                     twitch: twitch,
+                    kick: kick,
                     youtubeLive: youtubeLive,
                     youtubeLatest: youtubeLatest,
                     youtubeShort: youtubeShort,
@@ -520,6 +531,11 @@ app.post("/api/v1/connection", async (e) => {
                     description: "twitch connection",
                 },
                 {
+                    key: "kick",
+                    type: "string",
+                    description: "kick live connection",
+                },
+                {
                     key: "youtubeLive",
                     type: "string",
                     description: "youtube live connection",
@@ -654,6 +670,65 @@ app.patch("/api/v1/connection", async (e) => {
                 return e.json({
                     status: 500,
                     message: "Error updating Twitch connection",
+                });
+            }
+        }
+        if (type === "kick") {
+            const dataLiveReq = await fetch(
+                process.env.API_SERVER + "/v2/live/kickv2/" + username,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const dataLive = await dataLiveReq.json();
+            if (!dataLive?.user?.username) {
+                return e.json({
+                    status: 400,
+                    message: `User ${username} not found on Kick`,
+                });
+            }
+            const check = await db
+                .select()
+                .from(discordBotKick)
+                .where(eq(discordBotKick.username, username));
+            if (check.length <= 1) {
+                await deleteEventSubSubscriptionKick(check?.[0]?.sub_id);
+            }
+            const eventSub = await createEventSubSubscriptionKick(
+                username,
+                "livestream.status.updated"
+            );
+            const updateRow = await db
+                .update(discordBotKick)
+                .set({
+                    channel_id: channel_id,
+                    username: username,
+                    message: message,
+                    social_links: social_links || false,
+                    social_link_url: social_link_url,
+                    keep_vod: keep_vod || false,
+                    sub_id: eventSub || "",
+                })
+                .where(
+                    and(
+                        eq(discordBotKick.id, id),
+                        eq(discordBotKick.server_id, server_id)
+                    )
+                )
+                .returning();
+            if (updateRow.length > 0) {
+                return e.json({
+                    status: 200,
+                    message: "Kick connection updated",
+                    data: updateRow,
+                });
+            } else {
+                return e.json({
+                    status: 500,
+                    message: "Error updating Kick connection",
                 });
             }
         }
@@ -929,6 +1004,43 @@ app.delete("/api/v1/connection", async (e) => {
                 });
             }
         }
+        if (type === "kick") {
+            const getRow = await db
+                .select()
+                .from(discordBotKick)
+                .where(
+                    and(
+                        eq(discordBotKick.id, id),
+                        eq(discordBotKick.server_id, server_id)
+                    )
+                );
+            if (getRow.length === 0) {
+                return e.json({
+                    status: 500,
+                    message: "Kick connection not found",
+                });
+            }
+            await deleteEventSubSubscriptionKick(getRow[0].sub_id);
+            const deleteRow = await db
+                .delete(discordBotKick)
+                .where(
+                    and(
+                        eq(discordBotKick.id, id),
+                        eq(discordBotKick.server_id, server_id)
+                    )
+                );
+            if (deleteRow.length === 0) {
+                return e.json({
+                    status: 200,
+                    message: "Kick connection removed",
+                });
+            } else {
+                return e.json({
+                    status: 500,
+                    message: "Error removing Kick connection",
+                });
+            }
+        }
         if (type === "youtubeLive") {
             const getRow = await db
                 .select()
@@ -1047,6 +1159,11 @@ app.delete("/api/v1/connection", async (e) => {
                     description: "twitch connection",
                 },
                 {
+                    key: "kick",
+                    type: "string",
+                    description: "kick connection",
+                },
+                {
                     key: "youtubeLive",
                     type: "string",
                     description: "youtube live connection",
@@ -1071,6 +1188,7 @@ app.delete("/api/v1/connection", async (e) => {
 app.get("/api/v1/all", async (e) => {
     try {
         const twitch = await db.select().from(discordBotTwitch);
+        const kick = await db.select().from(discordBotKick);
         const youtubeLive = await db.select().from(discordBotYoutubeLive);
         const youtubeLatest = await db.select().from(discordBotYoutubeLatest);
         const youtubeLatestShort = await db
@@ -1091,6 +1209,9 @@ app.get("/api/v1/all", async (e) => {
                                     discordServer?.iconURL() ||
                                     getRandomAvatarUrl(),
                                 twitch: twitch.filter(
+                                    (e) => e.server_id === server_id.server_id
+                                ),
+                                kick: kick.filter(
                                     (e) => e.server_id === server_id.server_id
                                 ),
                                 youtubeLive: youtubeLive.filter(
@@ -1133,6 +1254,9 @@ app.get("/auth/login", (e) => {
 });
 app.post("/twitch/callback", async (c) => {
     return twitchCallbackHandler(c);
+});
+app.post("/kick/callback", async (c) => {
+    return kickCallbackHandler(c);
 });
 app.get("/auth/callback", async (c) => {
     try {
@@ -1345,6 +1469,37 @@ export const twitchCallbackHandler = async (c: Context) => {
         }
     } catch (error) {
         console.error("Error processing Twitch callback:", error);
+        c.status(500);
+        return c.json({ error: "Internal server error" });
+    }
+};
+export const kickCallbackHandler = async (c: Context) => {
+    try {
+        const req = c.req.raw; // Get the raw Request object
+        const type = req.headers.get("kick-event-type") ?? "";
+        if (type === "livestream.status.updated") {
+            const body = await req.json();
+            if (body.is_live) {
+                const items = await db
+                    .select()
+                    .from(discordBotKick)
+                    .where(
+                        eq(
+                            discordBotKick.username,
+                            body.broadcaster.channel_slug.toLowerCase()
+                        )
+                    )
+                    .execute();
+                setTimeout(async () => {
+                    for (const [index, item] of items.entries()) {
+                        await kickLiveEmbeds(item, index);
+                    }
+                }, 5000);
+            }
+        }
+        return c.text("OK");
+    } catch (error) {
+        console.error("Error processing Kick callback:", error);
         c.status(500);
         return c.json({ error: "Internal server error" });
     }

@@ -25,6 +25,25 @@ export const discordBotTwitch = pgTable("discord_bot_twitch", {
     live_started_at: text("live_started_at"),
 });
 
+export const discordBotKick = pgTable("discord_bot_kick", {
+    id: uuid("id").primaryKey().notNull(),
+    account_id: text("account_id").notNull(),
+    server_id: text("server_id").notNull(),
+    channel_id: text("channel_id").notNull(),
+    username: text("username").notNull(),
+    message_id: text("message_id"),
+    social_links: boolean("social_links").default(false).notNull(),
+    social_link_url: text("social_link_url"),
+    keep_vod: boolean("keep_vod").default(false).notNull(),
+    mention: text("mention"),
+    message: text("message"),
+    vod_id: text("vod_id"),
+    live: boolean("live").default(false).notNull(),
+    last_live: text("last_live"),
+    live_started_at: text("live_started_at"),
+    sub_id: text("sub_id").notNull(),
+});
+
 export const discordBotYoutubeLive = pgTable("discord_bot_youtube_live", {
     id: uuid("id").primaryKey().notNull(),
     account_id: text("account_id").notNull(),

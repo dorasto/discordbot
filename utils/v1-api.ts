@@ -27,6 +27,11 @@ export const allowedTypesConnectionAdd: {
                 description: "twitch connection",
             },
             {
+                key: "kick",
+                type: "string",
+                description: "kick connection",
+            },
+            {
                 key: "youtube_live",
                 type: "string",
                 description: "youtube live connection",
@@ -101,6 +106,11 @@ export const allowedTypesConnectionEdit: {
                 description: "twitch connection",
             },
             {
+                key: "kick",
+                type: "string",
+                description: "kick connection",
+            },
+            {
                 key: "youtube_live",
                 type: "string",
                 description: "youtube live connection",
@@ -173,6 +183,11 @@ export const allowedTypesConnectionRemove: {
                 key: "twitch",
                 type: "string",
                 description: "twitch connection",
+            },
+            {
+                key: "kick",
+                type: "string",
+                description: "kick connection",
             },
             {
                 key: "youtube_live",

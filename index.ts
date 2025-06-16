@@ -202,25 +202,23 @@ const TwitchEmbedLoop = async () => {
     }
 };
 const KickEmbedLoop = async () => {
-    if (process.env.TWITCH_EVENTSUB == "true") {
-        console_log.log("Kick embed check eventsub");
-        const servers = await db
-            .select()
-            .from(schema.discordBotKick)
-            .where(eq(schema.discordBotKick.live, true))
-            .execute();
-        console_log.log(`Kick Embeds Processing ${servers.length} Live Users`);
-        for (const [index, item] of servers.entries()) {
-            try {
-                await kickLiveEmbeds(item, index);
-            } catch (error) {
-                console.error(`Error processing ${item.username}:`, error);
-            }
+    console_log.log("Kick embed check eventsub");
+    const servers = await db
+        .select()
+        .from(schema.discordBotKick)
+        .where(eq(schema.discordBotKick.live, true))
+        .execute();
+    console_log.log(`Kick Embeds Processing ${servers.length} Live Users`);
+    for (const [index, item] of servers.entries()) {
+        try {
+            await kickLiveEmbeds(item, index);
+        } catch (error) {
+            console.error(`Error processing ${item.username}:`, error);
         }
-        console_log.log(
-            `Kick Embeds Finished Processing ${servers.length} Live Users`
-        );
     }
+    console_log.log(
+        `Kick Embeds Finished Processing ${servers.length} Live Users`
+    );
 };
 const youtubeLiveEmbedLoop = async () => {
     const servers = await db.query.discordBotYoutubeLive.findMany();
@@ -517,7 +515,7 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
     }
     try {
         const dataLiveReq = await fetch(
-            process.env.API_SERVER + "/v2/live/kickv2/" + item.username,
+            process.env.API_SERVER + "/v2/live/kick/" + item.username,
             {
                 method: "GET",
                 headers: {
@@ -616,7 +614,7 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
                 }
                 return;
             }
-            if (item.vod_id === dataLive.video.live_id) {
+            if (item.vod_id == dataLive.video.live_id) {
                 buttonWatch.setLabel("Watch Vod");
                 dataLive.video.url &&
                     buttonWatch.setURL(String(dataLive.video.url));
@@ -632,7 +630,9 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
                 embed.fields = [
                     {
                         name: "Vod Duration",
-                        value: `${dataLive.video.duration}`,
+                        value: `${humanReadableDurationExtendedKick(
+                            dataLive.video.duration
+                        )}`,
                     },
                 ];
                 embed.image = {
@@ -805,6 +805,33 @@ function humanReadableDurationExtended(duration: string) {
     const seconds = totalSeconds % 60;
 
     const partsFormatted = [];
+    if (days > 0) partsFormatted.push(`${days}d`);
+    if (hours > 0) partsFormatted.push(`${hours}h`);
+    if (minutes > 0) partsFormatted.push(`${minutes}m`);
+    if (seconds > 0 || partsFormatted.length === 0)
+        partsFormatted.push(`${seconds}s`);
+
+    return partsFormatted.join("");
+}
+function humanReadableDurationExtendedKick(durationInMs: number): string {
+    // Convert milliseconds to seconds
+    let totalSeconds = Math.floor(durationInMs / 1000);
+
+    if (typeof totalSeconds !== "number" || totalSeconds < 0) {
+        console.error(
+            "Invalid duration: expected a non-negative number of seconds"
+        );
+        return "Invalid duration";
+    }
+
+    const days = Math.floor(totalSeconds / 86400);
+    totalSeconds %= 86400;
+    const hours = Math.floor(totalSeconds / 3600);
+    totalSeconds %= 3600;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    const partsFormatted: string[] = [];
     if (days > 0) partsFormatted.push(`${days}d`);
     if (hours > 0) partsFormatted.push(`${hours}h`);
     if (minutes > 0) partsFormatted.push(`${minutes}m`);

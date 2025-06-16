@@ -1480,6 +1480,7 @@ export const kickCallbackHandler = async (c: Context) => {
         if (type === "livestream.status.updated") {
             const body = await req.json();
             if (body.is_live) {
+                console.log("kick live:", body);
                 const items = await db
                     .select()
                     .from(discordBotKick)
@@ -1495,6 +1496,23 @@ export const kickCallbackHandler = async (c: Context) => {
                         await kickLiveEmbeds(item, index);
                     }
                 }, 5000);
+            } else {
+                // console.log("kick not live:", body);
+                // const items = await db
+                //     .select()
+                //     .from(discordBotKick)
+                //     .where(
+                //         eq(
+                //             discordBotKick.username,
+                //             body.broadcaster.channel_slug.toLowerCase()
+                //         )
+                //     )
+                //     .execute();
+                // setTimeout(async () => {
+                //     for (const [index, item] of items.entries()) {
+                //         await kickLiveEmbeds(item, index);
+                //     }
+                // }, 5000);
             }
         }
         return c.text("OK");

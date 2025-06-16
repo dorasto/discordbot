@@ -132,7 +132,7 @@ export default {
                 }
                 if (platform === "kick") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER + "/v2/live/kickv2/" + username,
+                        process.env.API_SERVER + "/v2/live/kick/" + username,
                         {
                             method: "GET",
                             headers: {

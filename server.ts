@@ -19,12 +19,14 @@ import {
 } from "./db/schema";
 import { and, eq } from "drizzle-orm";
 import path from "path";
-import fs from "fs/promises"; // Use fs.promises for async file reading
+import fs from "fs";
 import { IUserServerAccess } from "./types";
 import {
     createEventSubSubscription,
     deleteEventSubSubscription,
     getSecret,
+    getTwitchUser,
+    TwitchTokenManager,
 } from "./twitch";
 import {
     createEventSubSubscriptionKick,
@@ -59,10 +61,10 @@ const checkAuthorizationMiddleware = async (
 };
 const app = new Hono();
 app.use("*", addHeadersMiddleware); // Apply middleware to all routes
-app.use("/api/*", checkAuthorizationMiddleware); // Apply middleware to api routes for authorization
+app.use("/api/v2/*", checkAuthorizationMiddleware); // Apply middleware to api routes for authorization
 app.get("/", async (c) => {
     const filePath = path.join(__dirname, "public", "index.html");
-    const htmlContent = await fs.readFile(filePath, "utf-8");
+    const htmlContent = fs.readFileSync(filePath, "utf-8");
     return c.html(htmlContent);
 });
 app.get("/health", async (c) => {
@@ -145,7 +147,7 @@ app.get("/api/v1/get_all_connections", async (c) => {
                         created_at: member.joinedAt,
                     })),
                     twitch: twitch,
-                    kick: kick,
+                    kick: kick || [],
                     youtubeLive: youtubeLive,
                     youtubeLatest: youtubeLatest,
                     youtubeShort: youtubeShort,
@@ -328,7 +330,7 @@ app.post("/api/v1/connection", async (e) => {
         if (!channel) return e.json({ error: "Channel not found" });
         if (type === "twitch") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER + "/v2/live/twitch/" + username,
+                process.env.API_SERVER_LIVE + "/twitch/" + username,
                 {
                     method: "GET",
                     headers: {
@@ -376,8 +378,8 @@ app.post("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeLive") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username?.replace("@", ""),
                 {
                     method: "GET",
@@ -425,8 +427,8 @@ app.post("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeLatest") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username?.replace("@", ""),
                 {
                     method: "GET",
@@ -474,8 +476,8 @@ app.post("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeShort") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username?.replace("@", ""),
                 {
                     method: "GET",
@@ -620,7 +622,7 @@ app.patch("/api/v1/connection", async (e) => {
         if (!channel) return e.json({ error: "Channel not found" });
         if (type === "twitch") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER + "/v2/live/twitch/" + username,
+                process.env.API_SERVER_LIVE + "/twitch/" + username,
                 {
                     method: "GET",
                     headers: {
@@ -675,7 +677,7 @@ app.patch("/api/v1/connection", async (e) => {
         }
         if (type === "kick") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER + "/v2/live/kickv2/" + username,
+                process.env.API_SERVER_LIVE + "/kick/" + username,
                 {
                     method: "GET",
                     headers: {
@@ -734,8 +736,8 @@ app.patch("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeLive") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username.replace("@", ""),
                 {
                     method: "GET",
@@ -786,8 +788,8 @@ app.patch("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeLatest") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username.replace("@", ""),
                 {
                     method: "GET",
@@ -838,8 +840,8 @@ app.patch("/api/v1/connection", async (e) => {
         }
         if (type === "youtubeShort") {
             const dataLiveReq = await fetch(
-                process.env.API_SERVER +
-                    "/v2/live/youtube/@" +
+                process.env.API_SERVER_LIVE +
+                    "/youtube/@" +
                     username.replace("@", ""),
                 {
                     method: "GET",
@@ -1316,6 +1318,165 @@ app.get("/auth/callback", async (c) => {
         return c.json({ error: error?.toString() }, { status: 500 });
     }
 });
+app.get("/api/live/twitch/:slug", async (c) => {
+    try {
+        let data = {
+            live: false,
+            id: "",
+            title: "",
+            category: "",
+            viewers: "",
+            started_at: "",
+            image: "",
+            tags: [],
+            user: {
+                username: null,
+                display_name: null,
+                broadcaster_type: null,
+                description: null,
+                profile_image: null,
+                offline_image: null,
+            },
+            video: {
+                live_id: null,
+                id: null,
+                title: null,
+                description: null,
+                created_at: null,
+                published_at: null,
+                url: null,
+                thumbnail_url: null,
+                view_count: null,
+                duration: null,
+            },
+        };
+        const tokenManager = new TwitchTokenManager();
+        const slug = c.req.param("slug");
+        const userData = await getTwitchUser(slug);
+        const accessToken = await tokenManager.getAccessToken();
+        if (!userData) {
+            return c.json(data, { status: 200 });
+        }
+        await fetch(`https://api.twitch.tv/helix/streams?user_login=` + slug, {
+            method: "GET",
+            headers: {
+                Authorization: "Bearer " + accessToken,
+                "Client-ID": process.env.TWITCH_CLIENT_ID || "",
+            },
+        })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(async function (twitch_data) {
+                if (twitch_data?.status == 401) {
+                    return c.json(data, { status: 200 });
+                }
+                if (
+                    twitch_data.data?.length == 0 ||
+                    !twitch_data.data ||
+                    twitch_data.data == undefined
+                ) {
+                    return c.json(data, { status: 200 });
+                }
+                twitch_data = twitch_data.data[0];
+                data = {
+                    live: true,
+                    id: twitch_data?.id,
+                    title: twitch_data?.title,
+                    category: twitch_data?.game_name,
+                    viewers: twitch_data?.viewer_count,
+                    started_at: twitch_data?.started_at,
+                    image: twitch_data?.thumbnail_url
+                        .replace("{width}", "1920")
+                        .replace("{height}", "1080")
+                        .replace(".jpg", ".jpg?random=" + Math.random()),
+                    tags: twitch_data?.tags,
+                    user: {
+                        username: (userData.login as any) || null,
+                        display_name: (userData.display_name as any) || null,
+                        broadcaster_type:
+                            (userData.broadcaster_type as any) || null,
+                        description: (userData.description as any) || null,
+                        profile_image:
+                            (userData.profile_image_url as any) || null,
+                        offline_image:
+                            (userData.offline_image_url as any) || null,
+                    },
+                    video: {
+                        live_id: null,
+                        id: null,
+                        title: null,
+                        description: null,
+                        created_at: null,
+                        published_at: null,
+                        url: null,
+                        thumbnail_url: null,
+                        view_count: null,
+                        duration: null,
+                    },
+                };
+                return c.json(data, { status: 200 });
+            })
+            .catch(function (err) {
+                console.error("err: ", err);
+            });
+        const videoReq = await fetch(
+            `https://api.twitch.tv/helix/videos?user_id=` +
+                userData?.id +
+                "&first=1",
+            {
+                method: "GET",
+                headers: {
+                    Authorization: "Bearer " + accessToken,
+                    "Client-ID": process.env.TWITCH_CLIENT_ID || "",
+                },
+            }
+        );
+        const videoData = await videoReq.json();
+        if (data.live == false) {
+            data.user = {
+                username: (userData.login as any) || null,
+                display_name: (userData.display_name as any) || null,
+                broadcaster_type: (userData.broadcaster_type as any) || null,
+                description: (userData.description as any) || null,
+                profile_image: (userData.profile_image_url as any) || null,
+                offline_image: (userData.offline_image_url as any) || null,
+            };
+            if (videoData.data[0]) {
+                const match = videoData?.data[0].thumbnail_url
+                    .replace("%{width}", "1920")
+                    .replace("%{height}", "1080")
+                    .match(/_(\d+)_/);
+                let live_id;
+                if (match) {
+                    live_id = match[1];
+                }
+                data.video = {
+                    live_id: live_id,
+                    id: videoData?.data[0].id || null,
+                    title: videoData?.data[0].title || null,
+                    description: videoData?.data[0].description || null,
+                    created_at: videoData?.data[0].created_at || null,
+                    published_at: videoData?.data[0].published_at || null,
+                    url: videoData?.data[0].url || null,
+                    thumbnail_url:
+                        videoData?.data[0].thumbnail_url
+                            .replace("%{width}", "1920")
+                            .replace("%{height}", "1080") || null,
+                    view_count: videoData?.data[0].view_count || null,
+                    duration: videoData?.data[0].duration || null,
+                };
+            }
+        }
+        return c.json(data, { status: 200 });
+    } catch (error) {
+        console.error(
+            "Error in /api/v1/get_all_connections:",
+            error?.toString()
+        );
+        return c.json({ error: error?.toString() }, { status: 500 });
+    }
+});
 serve({
     fetch: app.fetch,
     hostname: "0.0.0.0",
@@ -1496,23 +1657,6 @@ export const kickCallbackHandler = async (c: Context) => {
                         await kickLiveEmbeds(item, index);
                     }
                 }, 5000);
-            } else {
-                // console.log("kick not live:", body);
-                // const items = await db
-                //     .select()
-                //     .from(discordBotKick)
-                //     .where(
-                //         eq(
-                //             discordBotKick.username,
-                //             body.broadcaster.channel_slug.toLowerCase()
-                //         )
-                //     )
-                //     .execute();
-                // setTimeout(async () => {
-                //     for (const [index, item] of items.entries()) {
-                //         await kickLiveEmbeds(item, index);
-                //     }
-                // }, 5000);
             }
         }
         return c.text("OK");

@@ -6,6 +6,7 @@ import {
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
+import platforms from "../platforms";
 export default {
     data: new SlashCommandBuilder()
         .setName("list")
@@ -15,13 +16,7 @@ export default {
             option
                 .setName("platform")
                 .setDescription("Choose the platform")
-                .addChoices([
-                    { name: "Twitch", value: "twitch" },
-                    { name: "Kick", value: "kick" },
-                    { name: "YouTube Live", value: "youtube-live" },
-                    { name: "YouTube Latest", value: "youtube-latest" },
-                    { name: "Youtube Short", value: "youtube-short-latest" },
-                ])
+                .addChoices(platforms)
                 .setRequired(true)
         ),
     async execute(inter: ChatInputCommandInteraction) {

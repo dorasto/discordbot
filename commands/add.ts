@@ -16,6 +16,7 @@ import {
     AddButtonDataYoutubeLatestShort,
     AddButtonDataKick,
 } from "..";
+import platforms from "../platforms";
 export default {
     data: new SlashCommandBuilder()
         .setName("add")
@@ -24,13 +25,7 @@ export default {
             option
                 .setName("platform")
                 .setDescription("Choose the platform")
-                .addChoices([
-                    { name: "Twitch", value: "twitch" },
-                    { name: "Kick", value: "kick" },
-                    { name: "YouTube Live", value: "youtube-live" },
-                    { name: "YouTube Latest", value: "youtube-latest" },
-                    { name: "Youtube Short", value: "youtube-short-latest" },
-                ])
+                .addChoices(platforms)
                 .setRequired(true)
         )
         .addStringOption((option) =>
@@ -75,7 +70,7 @@ export default {
             try {
                 if (platform === "twitch") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER + "/v2/live/twitch/" + username,
+                        process.env.API_SERVER_LIVE + "/twitch/" + username,
                         {
                             method: "GET",
                             headers: {
@@ -132,7 +127,7 @@ export default {
                 }
                 if (platform === "kick") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER + "/v2/live/kick/" + username,
+                        process.env.API_SERVER_LIVE + "/kick/" + username,
                         {
                             method: "GET",
                             headers: {
@@ -189,8 +184,8 @@ export default {
                 }
                 if (platform === "youtube-live") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER +
-                            "/v2/live/youtube/@" +
+                        process.env.API_SERVER_LIVE +
+                            "/youtube/@" +
                             username?.replace("@", ""),
                         {
                             method: "GET",
@@ -255,8 +250,8 @@ export default {
                 }
                 if (platform === "youtube-latest") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER +
-                            "/v2/live/youtube/@" +
+                        process.env.API_SERVER_LIVE +
+                            "/youtube/@" +
                             username?.replace("@", ""),
                         {
                             method: "GET",
@@ -320,8 +315,8 @@ export default {
                 }
                 if (platform === "youtube-short-latest") {
                     const dataLiveReq = await fetch(
-                        process.env.API_SERVER +
-                            "/v2/live/youtube/@" +
+                        process.env.API_SERVER_LIVE +
+                            "/youtube/@" +
                             username?.replace("@", ""),
                         {
                             method: "GET",

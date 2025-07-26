@@ -273,7 +273,7 @@ export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
     }
     try {
         const dataLiveReq = await fetch(
-            process.env.API_SERVER + "/v2/live/twitch/" + item.username,
+            process.env.API_SERVER_LIVE + "/twitch/" + item.username,
             {
                 method: "GET",
                 headers: {
@@ -515,7 +515,7 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
     }
     try {
         const dataLiveReq = await fetch(
-            process.env.API_SERVER + "/v2/live/kick/" + item.username,
+            process.env.API_SERVER_LIVE + "/kick/" + item.username,
             {
                 method: "GET",
                 headers: {
@@ -851,7 +851,7 @@ const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
     if (!channel) return;
     try {
         const dataLiveReq = await fetch(
-            process.env.API_SERVER + "/v2/live/youtube/@" + item.username,
+            process.env.API_SERVER_LIVE + "/youtube/@" + item.username,
             {
                 method: "GET",
                 headers: {
@@ -1096,16 +1096,19 @@ const youtubeLatestEmbeds = async (item: IYoutubeLatest, index: number) => {
     const channel = discordServer.channels.cache.get(item.channel_id);
     if (!channel) return;
     try {
-        const dataLatestReq = await fetch(process.env.API_SERVER + "/youtube", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "User-Agent": "doras.to discordbot",
-            },
-            body: JSON.stringify({
-                channel_id: item.youtube_id,
-            }),
-        });
+        const dataLatestReq = await fetch(
+            process.env.API_SERVER_LIVE + "/youtube",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": "doras.to discordbot",
+                },
+                body: JSON.stringify({
+                    channel_id: item.youtube_id,
+                }),
+            }
+        );
         const _dataLatest = await dataLatestReq.json();
         const dataLatest = _dataLatest.data;
         if (!dataLatest) return;
@@ -1205,7 +1208,7 @@ const youtubeLatestShortEmbeds = async (
     if (!channel) return;
     try {
         const dataLatestReq = await fetch(
-            process.env.API_SERVER + "/youtube/short",
+            process.env.API_SERVER_LIVE + "/youtube/short",
             {
                 method: "POST",
                 headers: {

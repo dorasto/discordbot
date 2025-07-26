@@ -168,6 +168,52 @@ const getTwitchUserId = async (loginName: string): Promise<string | null> => {
         return null;
     }
 };
+const getTwitchUser = async (loginName: string): Promise<TwitchUser | null> => {
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    const accessToken = await tokenManager.getAccessToken();
+    if (!clientId || !accessToken) {
+        console.error(
+            "Twitch client ID and access token must be defined in environment variables."
+        );
+        return null;
+    }
+
+    const apiUrl = `https://api.twitch.tv/helix/users?login=${loginName}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            headers: {
+                "Client-Id": clientId,
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            console.error(
+                `Error fetching user data: ${response.status} ${response.statusText}`
+            );
+            const errorBody = await response.text();
+            console.error("Response body:", errorBody);
+            if (response.status == 401) {
+                await tokenManager.refreshAccessToken();
+                return await getTwitchUser(loginName);
+            }
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.data && data.data.length > 0) {
+            const user: TwitchUser = data.data[0] as TwitchUser; // Type assertion
+            return user;
+        } else {
+            console.warn(`User with login name "${loginName}" not found.`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error during fetch:", error);
+        return null;
+    }
+};
 const getSecret = (): string => {
     // This should come from a secure source (env variable, config file, etc.)
     const secret = process.env.TWITCH_EVENTSUB_SECRET;
@@ -301,6 +347,7 @@ const deleteEventSubSubscription = async (username: string) => {
 export {
     TwitchTokenManager,
     getTwitchUserId,
+    getTwitchUser,
     getSecret,
     createEventSubSubscription,
     deleteEventSubSubscription,

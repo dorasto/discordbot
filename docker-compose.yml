@@ -1,10 +1,10 @@
 version: "3"
 services:
-    evobot:
+    dorasto-discordbot:
         image: ghcr.io/dorasto/discordbot:latest
         environment:
             - DISCORD_TOKEN
-            - API_SERVER
+            - API_SERVER_LIVE
             - POSTGRES_URL
             - DISCORD_CLIENT_ID
             - DISCORD_CLIENT_SECRET
@@ -14,3 +14,27 @@ services:
             - ROOT_SERVER
             - TWITCH_EVENTSUB_SECRET
             - TWITCH_EVENTSUB
+            - KICK_CLIENT_ID
+            - KICK_CLIENT_SECRET
+    postgres:
+        image: postgres:16
+        container_name: discordbot-db
+        restart: always
+        environment:
+            - POSTGRES_USER=discordbot
+            - POSTGRES_PASSWORD=password
+            - POSTGRES_DB=discordbot
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - database:/var/lib/postgresql/data
+        networks:
+            - discordbot # It's a good idea to put the database on the network too
+volumes:
+    database:
+
+networks:
+    discordbot:

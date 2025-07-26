@@ -1,165 +1,159 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+# Doras Discord Bot
 
-<a id="readme-top"></a>
+![Typescript][typescript] ![docker][docker] ![discordjs][discordjs]
 
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
-
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
+A simple livestream notification Discord bot, built by the team who brought you [Doras.to](https://doras.to).
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![GPL License][license-shield]][license-url]
-
 [![Deployments](https://github.com/dorasto/discordbot/actions/workflows/docker-build.yml/badge.svg)](https://github.com/dorasto/discordbot/actions/workflows/docker-build.yml)
 
-<!-- PROJECT LOGO -->
-<br />
-<div align="center">
-  <a href="https://github.com/dorasto/discordbot">
-    <img src="https://cdn.doras.to/doras/doras-logo-text.webp" alt="Logo">
-  </a>
+---
 
-<h3 align="center">Doras Discord Bot</h3>
-  <p align="center">
-    A simple livestream notification Discord bot, built by the team who brought you <a href="https://doras.to">Doras.to</a>
-    <br />
-<!--     <a href="https://github.com/dorasto/discordbot"><strong>Explore the docs »</strong></a> -->
-    <br />
-    <br />
-    <a href="https://discord.com/oauth2/authorize?client_id=1178674222873198612">Invite the bot to your server</a>
-    ·
-    <a href="https://github.com/dorasto/discordbot/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    ·
-    <a href="https://github.com/dorasto/discordbot/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-  </p>
-</div>
+## Table of Contents
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-  </ol>
-</details>
+-   [About The Project](#about-the-project)
+    -   [Features](#features)
+    -   [Built With](#built-with)
+-   [Getting Started](#getting-started)
+    -   [Prerequisites](#prerequisites)
+    -   [Installation](#installation)
+-   [Usage](#usage)
+-   [Roadmap](#roadmap)
+-   [Contributing](#contributing)
+-   [License](#license)
+-   [Contact](#contact)
 
-<!-- ABOUT THE PROJECT -->
+---
 
 ## About The Project
 
-![Screen Shot](https://cdn.doras.to/doras/dorasbot/Screenshot%202024-07-23%20065736.png)
+![Screenshot](https://cdn.doras.to/doras/dorasbot/Screenshot%202024-07-23%20065736.png)
 
-Doras Discord Bot is an open source GPL bot to post live stream notifications & vods to your servers. It's primarily designed for [Doras] users, however it's not required.
+Doras Discord Bot is an open source GPLv3 bot to post live stream notifications & VODs to your Discord servers. It's primarily designed for [Doras] users, but anyone can use it.
 
-We've decided to open source the project should you wish to host it your self.
+### Features
 
-Contributions are also welcome!
+-   **Multi-platform support:** Twitch, Kick, YouTube Live, YouTube Latest, YouTube Shorts
+-   **Live notifications:** Get notified when your favorite streamers go live
+-   **VOD support:** Post VODs automatically
+-   **Easy setup:** Slash commands for adding/removing/listing notifications
+-   **Web dashboard & API**
+-   **Open source:** Host it yourself or contribute!
+
+---
 
 ### Built With
 
-![Typescript]
-![docker]
-![discordjs]
+-   [TypeScript](https://www.typescriptlang.org/)
+-   [Docker](https://www.docker.com/)
+-   [discord.js](https://discord.js.org/)
+-   [Hono](https://hono.dev/) (API server)
+-   [Drizzle ORM](https://orm.drizzle.team/)
+-   [PostgreSQL](https://www.postgresql.org/)
 
-<!-- GETTING STARTED -->
+---
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+Follow these steps to set up the project locally.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
+-   [pnpm](https://pnpm.io/)
+-   [Docker](https://www.docker.com/)
+-   Discord bot token ([guide](https://discord.com/developers/applications))
+-   Twitch API credentials (for event subscriptions)
+-   **Kick API credentials** (for Kick support):
+    -   You must set up a Kick application and get your credentials at [https://kick.com/settings/developer](https://kick.com/settings/developer)
+-   PostgreSQL database (Docker Compose included)
 
--   pnpm
--   docker
+> **Note:** You only need to set `TWITCH_EVENTSUB` and `TWITCH_EVENTSUB_SECRET` if you have a lot of Twitch streams being checked. This enables Twitch EventSub for better scaling and efficiency.
 
 ### Installation
 
-1. Clone the repo
-2. Install packages `pnpm install`
-3. Rename `.example.env` to `.env` and provide the relevant fields
-4. Run `pnpm dev`
+1. **Clone the repo**
+    ```sh
+    git clone https://github.com/dorasto/discordbot.git
+    cd discordbot
+    ```
+2. **Install dependencies**
+    ```sh
+    pnpm install
+    ```
+3. **Configure environment**
+    - Copy `.example.env` to `.env` and fill in the required fields.
+4. **Start the database**
+    ```sh
+    docker-compose up -d postgres
+    ```
 
-<!-- ROADMAP -->
+---
 
-## Roadmap
+## Dockerfile vs Dockerfile.Shard
 
--   YouTube live & video embeds
--   YouTube Shorts
+This project provides two Dockerfiles:
 
-See the [open issues](https://github.com/dorasto/discordbot/issues) for a full list of proposed features (and known issues).
+-   **Dockerfile**: Standard deployment. Use this for running a single instance of the bot (suitable for most servers and small/medium Discord bots).
+-   **Dockerfile.Shard**: For sharded deployments. Use this if you want to run the bot in sharding mode, which is recommended for large bots or when your bot is in many servers. Sharding is a Discord feature that splits your bot across multiple processes to handle more servers efficiently. See the [Discord.js Sharding Guide](https://discordjs.guide/sharding/) for more info.
 
-<!-- CONTRIBUTING -->
+Choose the Dockerfile that matches your scale and needs. For most users, the regular `Dockerfile` is sufficient.
+
+---
+
+## Usage
+
+-   Use `/add` to add a notification for a streamer/channel
+-   Use `/remove` to remove a notification
+-   Use `/list` to see all configured notifications
+-   Use `/authenticate` to link your Doras account (if needed)
+-   Use `/uptime` to check bot status
+
+> **Note:** There is no web UI for self-hosted users. If you use the hosted version at [doras.to](https://doras.to), you can access the web dashboard. For self-hosted, use Discord slash commands and the API only.
+
+You can also use the web API (see `server.ts` for endpoints) for advanced integrations.
+
+See [open issues](https://github.com/dorasto/discordbot/issues) for a full list of proposed features and known issues.
+
+---
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open source community amazing! Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a pull request
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<!-- LICENSE -->
+---
 
 ## License
 
-Distributed under the GPLv3 License. See `LICENSE` for more information.
+Distributed under the GPLv3 License. See [`LICENSE`](LICENSE) for more information.
 
-<!-- CONTACT -->
+---
 
 ## Contact
 
-The Doras Team - [@doras_to](https://twitter.com/doras_to) - hi@doras.to
+The Doras Team  
+[@doras_to](https://twitter.com/doras_to)  
+hi@doras.to
 
 Project Link: [https://github.com/dorasto/discordbot](https://github.com/dorasto/discordbot)
 
+---
+
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
 [typescript]: https://img.shields.io/badge/typescript-3178c6?style=for-the-badge&logo=typescript&logoColor=white
 [docker]: https://img.shields.io/badge/docker-2496ec?style=for-the-badge&logo=docker&logoColor=white
 [discordjs]: https://img.shields.io/badge/discord.js-2496ec?style=for-the-badge&logo=discord&logoColor=white
 [Doras]: https://doras.to
-
-<!-- dummy data -->
-
 [contributors-shield]: https://img.shields.io/github/contributors/dorasto/discordbot.svg?style=for-the-badge
 [contributors-url]: https://github.com/dorasto/discordbot/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/dorasto/discordbot.svg?style=for-the-badge
@@ -170,20 +164,3 @@ Project Link: [https://github.com/dorasto/discordbot](https://github.com/dorasto
 [issues-url]: https://github.com/dorasto/discordbot/issues
 [license-shield]: https://img.shields.io/github/license/dorasto/discordbot.svg?style=for-the-badge
 [license-url]: https://github.com/dorasto/discordbot/blob/main/LICENSE
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[product-screenshot]: images/screenshot.png
-[Next-url]: https://nextjs.org/
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-[Vue-url]: https://vuejs.org/
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-[Angular-url]: https://angular.io/
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-[Laravel-url]: https://laravel.com
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com

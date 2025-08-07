@@ -61,7 +61,7 @@ const checkAuthorizationMiddleware = async (
 };
 const app = new Hono();
 app.use("*", addHeadersMiddleware); // Apply middleware to all routes
-app.use("/api/v2/*", checkAuthorizationMiddleware); // Apply middleware to api routes for authorization
+app.use("/api/v1/*", checkAuthorizationMiddleware); // Apply middleware to api routes for authorization
 app.get("/", async (c) => {
     const filePath = path.join(__dirname, "public", "index.html");
     const htmlContent = fs.readFileSync(filePath, "utf-8");

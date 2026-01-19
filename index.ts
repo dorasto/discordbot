@@ -255,9 +255,6 @@ const youtubeLatestShortEmbedLoop = async () => {
 };
 export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
     console_log.log(`Entering twitchLiveEmbeds for ${item.username} (index: ${index})`);
-    console_log.log(
-        `Processed Twitch Live Embed for ${index + 1}: ${item.username}`
-    );
     const discordServer = discord.guilds.cache.get(item.server_id);
     if (!discordServer) {
         console_log.error(
@@ -459,7 +456,7 @@ export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                         live_started_at: dataLive.started_at,
                     })
                     .where(eq(schema.discordBotTwitch.id, item.id));
-                console_log.log(`Twitch Live Embed sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id}`);
+                console_log.log(`twitchLiveEmbeds sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id} Username: ${item.username}`);
                 return;
             }
             return;
@@ -487,8 +484,10 @@ export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
                     return;
                 }
             });
-        console_log.log(`Twitch Live Embed edited message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${item.message_id}`);
-
+        console_log.log(`twitchLiveEmbeds edited message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${item.message_id} Username: ${item.username}`);
+        console_log.log(
+            `Processed twitchLiveEmbeds for ${index + 1}: ${item.username}`
+        );
     } catch (error) {
         console.log(error);
         console_log.error(`Twitch ${item.username}: catch: ` + error);
@@ -496,9 +495,7 @@ export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
     }
 };
 export const kickLiveEmbeds = async (item: IKick, index: number) => {
-    console_log.log(
-        `Processed Kick Live Embed for ${index + 1}: ${item.username}`
-    );
+    console_log.log(`Entering kickLiveEmbeds for ${item.username} (index: ${index})`);
     const discordServer = discord.guilds.cache.get(item.server_id);
     if (!discordServer) {
         console_log.error(
@@ -706,6 +703,7 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
                         live_started_at: dataLive.started_at,
                     })
                     .where(eq(schema.discordBotKick.id, item.id));
+                console_log.log(`kickLiveEmbeds sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id} Username: ${item.username}`);
                 return;
             }
             return;
@@ -733,6 +731,10 @@ export const kickLiveEmbeds = async (item: IKick, index: number) => {
                     return;
                 }
             });
+        console_log.log(`kickLiveEmbeds edited message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${item.message_id} Username: ${item.username}`);
+        console_log.log(
+            `Processed kickLiveEmbeds for ${index + 1}: ${item.username}`
+        );
     } catch (error) {
         console.log(error);
         console_log.error(`Kick ${item.username}: catch: ` + error);
@@ -842,9 +844,7 @@ function humanReadableDurationExtendedKick(durationInMs: number): string {
 }
 const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
     item.username = item.username.replace("@", "");
-    console_log.log(
-        `Processed Youtube Live Embed for ${index + 1}: ${item.username}`
-    );
+    console_log.log(`Entering youtubeLiveEmbeds for ${item.username} (index: ${index})`);
     const discordServer = discord.guilds.cache.get(item.server_id);
     if (!discordServer) return;
     const channel = discordServer.channels.cache.get(item.channel_id);
@@ -1052,7 +1052,7 @@ const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
                         live_started_at: new Date().toISOString(),
                     })
                     .where(eq(schema.discordBotYoutubeLive.id, item.id));
-                console_log.log(`Youtube Live Embed sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id}`);
+                console_log.log(`youtubeLiveEmbeds sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id} Username: ${item.username}`);
                 return;
             }
             return;
@@ -1081,7 +1081,10 @@ const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
                     return;
                 }
             });
-        console_log.log(`Youtube Live Embed edited message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${item.message_id}`);
+        console_log.log(`youtubeLiveEmbeds edited message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${item.message_id} Username: ${item.username}`);
+        console_log.log(
+            `Processed youtubeLiveEmbeds for ${index + 1}: ${item.username}`
+        );
     } catch (error) {
         console.log(error);
         console_log.error(`Youtube ${item.username}: catch: ` + error);
@@ -1090,9 +1093,7 @@ const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
 };
 const youtubeLatestEmbeds = async (item: IYoutubeLatest, index: number) => {
     item.username = item.username.replace("@", "");
-    console_log.log(
-        `Processed Youtube Latest Embed for ${index + 1}: ${item.username}`
-    );
+    console_log.log(`Entering youtubeLatestEmbeds for ${item.username} (index: ${index})`);
     const discordServer = discord.guilds.cache.get(item.server_id);
     if (!discordServer) return;
     const channel = discordServer.channels.cache.get(item.channel_id);
@@ -1186,11 +1187,15 @@ const youtubeLatestEmbeds = async (item: IYoutubeLatest, index: number) => {
                     video_id: dataLatest.video_id,
                 })
                 .where(eq(schema.discordBotYoutubeLatest.id, item.id));
+            console_log.log(`youtubeLatestEmbeds sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id} Username: ${item.username}`);
+            console_log.log(
+                `Processed youtubeLatestEmbeds for ${index + 1}: ${item.username}`
+            );
             return;
         }
     } catch (error) {
         console.log(error);
-        console_log.error(`Youtube Latest ${item.username}: catch: ` + error);
+        console_log.error(`youtubeLatestEmbeds ${item.username}: catch: ` + error);
         return;
     }
 };
@@ -1199,10 +1204,7 @@ const youtubeLatestShortEmbeds = async (
     index: number
 ) => {
     item.username = item.username.replace("@", "");
-    console_log.log(
-        `Processed Youtube Latest short Embed for ${index + 1}: ${item.username
-        }`
-    );
+    console_log.log(`Entering youtubeLatestShortEmbeds for ${item.username} (index: ${index})`);
     const discordServer = discord.guilds.cache.get(item.server_id);
     if (!discordServer) return;
     const channel = discordServer.channels.cache.get(item.channel_id);
@@ -1289,6 +1291,10 @@ const youtubeLatestShortEmbeds = async (
                     video_id: dataLatest.video_id,
                 })
                 .where(eq(schema.discordBotYoutubeLatestShort.id, item.id));
+            console_log.log(`youtubeLatestShortEmbeds Embed sent message with Guild ID: ${item.server_id}, Channel ID: ${item.channel_id}, Message ID: ${message.id} Username: ${item.username}`);
+            console_log.log(
+                `Processed youtubeLatestShortEmbeds Embed for ${index + 1}: ${item.username}`
+            );
             return;
         }
     } catch (error) {

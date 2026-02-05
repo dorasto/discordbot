@@ -19,6 +19,7 @@ import * as schema from "./db/schema";
 import {
     IKick,
     ITwitch,
+    IXLatestPost,
     IYoutubeLatest,
     IYoutubeLatestShort,
     IYoutubeLive,
@@ -31,6 +32,7 @@ export const AddButtonDataKick = new Map();
 export const AddButtonDataYoutubeLive = new Map();
 export const AddButtonDataYoutubeLatest = new Map();
 export const AddButtonDataYoutubeLatestShort = new Map();
+export const AddButtonDataXLatestPost = new Map();
 export const discord = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -83,6 +85,7 @@ discord.on(Events.ClientReady, async () => {
         await youtubeLiveEmbedLoop();
         await youtubeLatestEmbedLoop();
         await youtubeLatestShortEmbedLoop();
+        await xPostLatestLoop();
     });
     // const task = null;
     if (task) {
@@ -183,6 +186,7 @@ import "./events/interactionCreate";
 import "./server";
 import { createEventSubSubscription } from "./twitch";
 import { createEventSubSubscriptionKick } from "./kick";
+import { XNitterManager } from "./XNitterManager";
 // run every 10 minutes
 const TwitchEmbedLoop = async () => {
     if (process.env.TWITCH_EVENTSUB == "true") {
@@ -270,6 +274,16 @@ const youtubeLatestShortEmbedLoop = async () => {
     }
     console_log.log(
         `Youtube Latest Short Embeds Finished Processing ${servers.length} Users`
+    );
+};
+const xPostLatestLoop = async () => {
+    const servers = await db.query.discordBotXLatestPost.findMany();
+    console_log.log(`X Latest Post Embeds Processing ${servers.length} Users`);
+    for (const [index, item] of servers.entries()) {
+        await xLatestPostEmbeds(item, index);
+    }
+    console_log.log(
+        `X Latest Post Embeds Finished Processing ${servers.length} Users`
     );
 };
 export const twitchLiveEmbeds = async (item: ITwitch, index: number) => {
@@ -1632,6 +1646,78 @@ const youtubeLatestShortEmbeds = async (
         logger.log("END request (error)");
     }
 };
+
+export const xLatestPostEmbeds = async (item: IXLatestPost, index: number) => {
+    const logger = console_log.createReqLogger("X-LATEST-POST", {
+        user: item.username,
+        guild: item.server_id,
+        channel: item.channel_id,
+        index,
+    });
+    logger.log("START request");
+
+    const xManager = new XNitterManager();
+    const post = await xManager.getLatestPost(item.username);
+    if (!post) {
+        logger.warn("No posts found for user");
+        logger.log("END request");
+        return;
+    }
+    if (post?.id === item.x_post_id) {
+        logger.log(
+            `Post already processed (post_id=${post.id})`
+        );
+        logger.log("END request");
+        return;
+    }
+    const discordServer = discord.guilds.cache.get(item.server_id);
+    if (!discordServer) {
+        logger.error("Guild not found, aborting");
+        logger.log("END request");
+        return;
+    }
+    const channel = discordServer.channels.cache.get(item.channel_id);
+    if (!channel) {
+        logger.error("Channel not found, aborting");
+        logger.log("END request");
+        return;
+    }
+    try {
+        if (!channel.isTextBased()) {
+            logger.warn("Channel not text-based, aborting");
+            logger.log("END request");
+            return;
+        }
+
+        const row: any = new ActionRowBuilder();
+
+        if (item.social_links && item.social_link_url) {
+            row.addComponents(
+                new ButtonBuilder()
+                    .setLabel("Social Links")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(`https://doras.to/${item.social_link_url}`)
+            );
+        }
+        const message = await channel.send({
+            content: `${item.message}\n\n${post.link}`,
+            components: row.components.length ? [row] : [],
+        });
+        await db.update(schema.discordBotXLatestPost).set({
+            x_post_id: post.id,
+            message: item.message,
+            message_id: message.id,
+        }).where(eq(schema.discordBotXLatestPost.id, item.id));
+        logger.log(
+            `Message sent successfully (message_id=${message.id})`
+        );
+        logger.log("END request");
+    } catch (error) {
+        logger.error(
+            `Unhandled exception → ${error instanceof Error ? error.message : error}`
+        );
+    }
+}
 export const commands = new Map();
 async function registerSlashCommands() {
     let slashCommands = [];

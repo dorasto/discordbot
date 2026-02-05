@@ -229,6 +229,36 @@ export default {
                         content: "User removed",
                     });
                 }
+                if (platform === "x") {
+                    const data = await db
+                        .delete(schema.discordBotXLatestPost)
+                        .where(
+                            and(
+                                eq(
+                                    schema.discordBotXLatestPost.server_id,
+                                    inter.guildId
+                                ),
+                                eq(
+                                    schema.discordBotXLatestPost.username,
+                                    username?.replace("@", "")
+                                ),
+                                eq(
+                                    schema.discordBotXLatestPost.channel_id,
+                                    channel.id
+                                )
+                            )
+                        )
+                        .returning();
+                    if (data.length === 0) {
+                        await inter.editReply({
+                            content: "User not found",
+                        });
+                        return;
+                    }
+                    await inter.editReply({
+                        content: "User removed"
+                    });
+                }
             } catch (error) {
                 console.error("Error executing remove command: ", error);
                 await inter.editReply({

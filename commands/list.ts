@@ -258,6 +258,53 @@ export default {
                 });
                 return;
             }
+            if (platform === "x") {
+                const users = await db
+                    .select()
+                    .from(schema.discordBotXLatestPost)
+                    .where(
+                        eq(
+                            schema.discordBotXLatestPost.server_id,
+                            inter.guildId
+                        )
+                    );
+                if (users.length === 0) {
+                    await inter.editReply({
+                        content: "No users found",
+                    });
+                    return;
+                }
+                const embeds = [];
+                const chunkSize = 25;
+                for (let i = 0; i < users.length; i += chunkSize) {
+                    const chunk = users.slice(i, i + chunkSize);
+                    let embed: any = {
+                        color: parseInt("1DA1F2", 16),
+                        title: "List of X latest post users",
+                        fields: chunk.map((user) => ({
+                            name: `@${user.username} added by`,
+                            value: `<@${user.account_id}> used in <#${user.channel_id}>`,
+                        })),
+                        thumbnail: {
+                            url: "https://cdn-icons-png.flaticon.com/512/733/733579.png",
+                        },
+                    };
+                    i == 0
+                        ? (embed.description = `Total X accounts: ${users.length}`)
+                        : "",
+                        embeds.push(embed);
+                }
+                if (embeds.length === 0) {
+                    await inter.editReply({
+                        content: "No users found",
+                    });
+                    return;
+                }
+                await inter.editReply({
+                    embeds: embeds.slice(0, 10),
+                });
+                return;
+            }
         } catch (error) {
             console.error("Error executing list command: ", error);
             await inter.editReply({

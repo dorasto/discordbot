@@ -15,9 +15,11 @@ import {
     AddButtonDataYoutubeLatest,
     AddButtonDataYoutubeLatestShort,
     AddButtonDataKick,
+    AddButtonDataXLatestPost,
 } from "..";
 import platforms from "../platforms";
 import { normalizeTwitchUsername } from "../utils/normalize";
+import { XNitterManager } from "../XNitterManager";
 export default {
     data: new SlashCommandBuilder()
         .setName("add")
@@ -76,8 +78,8 @@ export default {
                 if (platform === "twitch") {
                     const dataLiveReq = await fetch(
                         process.env.API_SERVER_LIVE +
-                            "/twitch/" +
-                            usernameNormalized,
+                        "/twitch/" +
+                        usernameNormalized,
                         {
                             method: "GET",
                             headers: {
@@ -192,8 +194,8 @@ export default {
                 if (platform === "youtube-live") {
                     const dataLiveReq = await fetch(
                         process.env.API_SERVER_LIVE +
-                            "/youtube/@" +
-                            usernameClean,
+                        "/youtube/@" +
+                        usernameClean,
                         {
                             method: "GET",
                             headers: {
@@ -253,8 +255,8 @@ export default {
                 if (platform === "youtube-latest") {
                     const dataLiveReq = await fetch(
                         process.env.API_SERVER_LIVE +
-                            "/youtube/@" +
-                            usernameClean,
+                        "/youtube/@" +
+                        usernameClean,
                         {
                             method: "GET",
                             headers: {
@@ -313,8 +315,8 @@ export default {
                 if (platform === "youtube-short-latest") {
                     const dataLiveReq = await fetch(
                         process.env.API_SERVER_LIVE +
-                            "/youtube/@" +
-                            usernameClean,
+                        "/youtube/@" +
+                        usernameClean,
                         {
                             method: "GET",
                             headers: {
@@ -367,6 +369,48 @@ export default {
                         account: inter.user.id,
                         message: message || null,
                         youtube_id: dataLive.channel?.id || "",
+                    });
+                    return;
+                }
+                if (platform === "x") {
+                    const xManager = new XNitterManager();
+                    const profile = await xManager.getProfile(usernameClean || "");
+                    const bioLine = profile?.bio ? `Bio: ${profile.bio}\n\n` : "";
+                    const description = `${bioLine}${usernameClean} added by ${inter.user.username}`;
+                    const embed = new EmbedBuilder();
+                    embed.setTitle(`${profile?.displayName || usernameClean}`);
+                    embed.setDescription(description);
+                    embed.setURL(`https://x.com/${usernameClean}`);
+                    embed.setAuthor({
+                        name: "Doras Bot",
+                        iconURL: discord.user?.avatarURL() || "",
+                    });
+                    embed.setColor(0x1da1f2);
+                    embed.setImage(profile?.avatar || "");
+                    embed.setTimestamp();
+                    let buttonAccept = new ButtonBuilder();
+                    buttonAccept.setCustomId("accept-x-latest");
+                    buttonAccept.setLabel("Accept");
+                    buttonAccept.setStyle(ButtonStyle.Success);
+                    let buttonReject = new ButtonBuilder();
+                    buttonReject.setCustomId("reject-x-latest");
+                    buttonReject.setLabel("Reject");
+                    buttonReject.setStyle(ButtonStyle.Danger);
+                    const row = new ActionRowBuilder().addComponents(
+                        buttonAccept,
+                        buttonReject
+                    );
+                    const data = await inter.editReply({
+                        embeds: [embed],
+                        //@ts-expect-error
+                        components: [row],
+                    });
+                    AddButtonDataXLatestPost.set(data.id, {
+                        username: usernameClean,
+                        channel: channel?.id || "",
+                        server: inter.guild?.id || "",
+                        account: inter.user.id,
+                        message: message || null,
                     });
                     return;
                 }

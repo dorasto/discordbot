@@ -90,6 +90,19 @@ export const discordBotYoutubeLatestShort = pgTable(
     }
 );
 
+export const discordBotXLatestPost = pgTable("discord_bot_x_latest", {
+    id: uuid("id").primaryKey().notNull(),
+    account_id: text("account_id").notNull(),
+    server_id: text("server_id").notNull(),
+    channel_id: text("channel_id").notNull(),
+    username: text("username").notNull(),
+    x_post_id: text("x_post_id").notNull(),
+    message_id: text("message_id"),
+    social_links: boolean("social_links").default(false).notNull(),
+    social_link_url: text("social_link_url"),
+    message: text("message"),
+});
+
 export const discordBotServer = pgTable("discord_bot_server", {
     id: uuid("id").primaryKey().notNull(),
     account_id: text("account_id").notNull(),

@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, Events, Interaction } from "discord.js";
 import {
     AddButtonDataKick,
     AddButtonDataTwitch,
+    AddButtonDataXLatestPost,
     AddButtonDataYoutubeLatest,
     AddButtonDataYoutubeLatestShort,
     AddButtonDataYoutubeLive,
@@ -9,6 +10,7 @@ import {
     discord,
     kickLiveEmbeds,
     twitchLiveEmbeds,
+    xLatestPostEmbeds,
 } from "..";
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -323,6 +325,64 @@ discord.on(
                         break;
                     case "reject-youtube-latest":
                         AddButtonDataYoutubeLatestShort.delete(
+                            interaction.message.id
+                        );
+                        await interaction.reply({
+                            content: "User has rejected",
+                            ephemeral: true,
+                        });
+                        break;
+                    case "accept-x-latest":
+                        const dataXLatest = AddButtonDataXLatestPost.get(
+                            interaction.message.id
+                        );
+                        if (!dataXLatest) {
+                            await interaction.reply({
+                                content: "Button pressed but no data found.",
+                                ephemeral: true,
+                            });
+                            AddButtonDataXLatestPost.delete(
+                                interaction.message.id
+                            );
+                            return;
+                        }
+                        const dataDBXLatest = await db
+                            .insert(schema.discordBotXLatestPost)
+                            .values({
+                                id: randomUUID(),
+                                account_id: interaction.user.id,
+                                channel_id: dataXLatest?.channel || "",
+                                server_id: dataXLatest.server || "",
+                                username: dataXLatest.username || "",
+                                social_links: false,
+                                message: dataXLatest.message || null,
+                                x_post_id: "",
+                            })
+                            .returning();
+                        if (!dataDBXLatest) {
+                            await interaction.reply({
+                                content:
+                                    "There was an error executing the command.",
+                                ephemeral: true,
+                            });
+                            AddButtonDataXLatestPost.delete(
+                                interaction.message.id
+                            );
+                            return;
+                        } else {
+                            await interaction.reply({
+                                content: `${dataXLatest.username} has been added to the database.`,
+                                ephemeral: true,
+                            });
+                            await xLatestPostEmbeds(dataDBXLatest[0], -50);
+
+                            AddButtonDataXLatestPost.delete(
+                                interaction.message.id
+                            );
+                        }
+                        break;
+                    case "reject-x-latest":
+                        AddButtonDataXLatestPost.delete(
                             interaction.message.id
                         );
                         await interaction.reply({

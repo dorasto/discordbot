@@ -129,7 +129,13 @@ app.get("/api/v1/get_all_connections", async (c) => {
                         type: channel.type,
                         created_at: channel.createdAt,
                     }));
-                await discordServer.members.fetch(); // fetch all members
+                if (discordServer.members.cache.size < discordServer.memberCount) {
+                    try {
+                        await discordServer.members.fetch();
+                    } catch (err) {
+                        console.warn("Member fetch blocked. Using cached members only.");
+                    }
+                }
                 const members = discordServer.members.cache.map((member) => ({
                     id: member.id,
                     username: member.user.username,

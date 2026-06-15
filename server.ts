@@ -4,6 +4,8 @@ import { Context, Hono } from "hono";
 import { serve } from "@hono/node-server";
 import crypto from "crypto";
 import { db } from "./db";
+import * as schema from "./db/schema";
+
 import {
     validateBodyConnectionAdd,
     validateBodyConnectionEdit,
@@ -127,6 +129,14 @@ app.get("/api/v1/get_all_connections", async (c) => {
                         type: channel.type,
                         created_at: channel.createdAt,
                     }));
+                await discordServer.members.fetch(); // fetch all members
+                const members = discordServer.members.cache.map((member) => ({
+                    id: member.id,
+                    username: member.user.username,
+                    avatar: member.user.avatarURL(),
+                    discriminator: member.user.discriminator,
+                    created_at: member.joinedAt,
+                }));
                 return {
                     id: e.id,
                     name: e.name,
@@ -140,13 +150,7 @@ app.get("/api/v1/get_all_connections", async (c) => {
                             color: role.hexColor,
                             created_at: role.createdAt,
                         })),
-                    members: discordServer.members.cache.map((member) => ({
-                        id: member.id,
-                        username: member.user.username,
-                        avatar: member.user.avatarURL(),
-                        discriminator: member.user.discriminator,
-                        created_at: member.joinedAt,
-                    })),
+                    members: members,
                     twitch: twitch,
                     kick: kick || [],
                     youtubeLive: youtubeLive,
@@ -224,14 +228,14 @@ app.post("/api/v1/get_connections", async (c) => {
                     ...item,
                     discord_user: discordUser
                         ? {
-                              id: discordUser.id,
-                              username: discordUser.user.username,
-                              discriminator: discordUser.user.discriminator,
-                              displayName: discordUser.displayName,
-                              logo:
-                                  discordUser.user.avatarURL() ||
-                                  getRandomAvatarUrl(),
-                          }
+                            id: discordUser.id,
+                            username: discordUser.user.username,
+                            discriminator: discordUser.user.discriminator,
+                            displayName: discordUser.displayName,
+                            logo:
+                                discordUser.user.avatarURL() ||
+                                getRandomAvatarUrl(),
+                        }
                         : null, // Handle cases where the user is not found in the cache
                 };
             });
@@ -362,10 +366,12 @@ app.post("/api/v1/connection", async (e) => {
                 })
                 .returning();
             if (newRow.length > 0) {
+                const item = newRow[0];
                 await createEventSubSubscription(
                     normalizedUsername,
                     "stream.online"
                 );
+                await twitchLiveEmbeds(item, -50);
                 return e.json({
                     status: 200,
                     message: "Twitch connection added",
@@ -378,11 +384,71 @@ app.post("/api/v1/connection", async (e) => {
                 });
             }
         }
+        if (type === "kick") {
+            const dataLiveReq = await fetch(
+                process.env.API_SERVER_LIVE + "/kick/" + normalizedUsername,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const dataLive = await dataLiveReq.json();
+            if (!dataLive?.user?.username) {
+                return e.json({
+                    status: 400,
+                    message: `User ${username} not found on Kick`,
+                });
+            }
+            const newRow = await db
+                .insert(discordBotKick)
+                .values({
+                    id: crypto.randomUUID(),
+                    server_id: server_id,
+                    account_id: account_id,
+                    channel_id: channel_id,
+                    username: normalizedUsername,
+                    social_links: social_links || false,
+                    social_link_url: social_link_url,
+                    keep_vod: keep_vod || false,
+                    message: message,
+                    sub_id: "",
+                })
+                .returning();
+            if (newRow.length > 0) {
+                const item = newRow[0];
+                const eventSub =
+                    await createEventSubSubscriptionKick(
+                        item.username,
+                        "livestream.status.updated"
+                    );
+                if (eventSub) {
+                    await db
+                        .update(schema.discordBotKick)
+                        .set({ sub_id: eventSub })
+                        .where(
+                            eq(schema.discordBotKick.id, item.id)
+                        );
+                    await kickLiveEmbeds(item, -50);
+                }
+                return e.json({
+                    status: 200,
+                    message: "Kick connection added",
+                    data: newRow[0],
+                });
+            } else {
+                return e.json({
+                    status: 500,
+                    message: "Error adding Kick connection",
+                });
+            }
+        }
         if (type === "youtubeLive") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username?.replace("@", ""),
+                "/youtube/@" +
+                username?.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -430,8 +496,8 @@ app.post("/api/v1/connection", async (e) => {
         if (type === "youtubeLatest") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username?.replace("@", ""),
+                "/youtube/@" +
+                username?.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -479,8 +545,8 @@ app.post("/api/v1/connection", async (e) => {
         if (type === "youtubeShort") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username?.replace("@", ""),
+                "/youtube/@" +
+                username?.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -743,8 +809,8 @@ app.patch("/api/v1/connection", async (e) => {
         if (type === "youtubeLive") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username.replace("@", ""),
+                "/youtube/@" +
+                username.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -795,8 +861,8 @@ app.patch("/api/v1/connection", async (e) => {
         if (type === "youtubeLatest") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username.replace("@", ""),
+                "/youtube/@" +
+                username.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -847,8 +913,8 @@ app.patch("/api/v1/connection", async (e) => {
         if (type === "youtubeShort") {
             const dataLiveReq = await fetch(
                 process.env.API_SERVER_LIVE +
-                    "/youtube/@" +
-                    username.replace("@", ""),
+                "/youtube/@" +
+                username.replace("@", ""),
                 {
                     method: "GET",
                     headers: {
@@ -1432,8 +1498,8 @@ app.get("/api/live/twitch/:slug", async (c) => {
             });
         const videoReq = await fetch(
             `https://api.twitch.tv/helix/videos?user_id=` +
-                userData?.id +
-                "&first=1",
+            userData?.id +
+            "&first=1",
             {
                 method: "GET",
                 headers: {
@@ -1494,11 +1560,10 @@ serve({
 }).on("listening", () => {
     console_log.colour("Server is running on port 5468", "green");
 });
-const hasAdminPermission = (permissions: number) => {
-    const ADMINISTRATOR_PERMISSION = 0x8; // Bit flag for Administrator permission
-    return (
-        (permissions & ADMINISTRATOR_PERMISSION) === ADMINISTRATOR_PERMISSION
-    );
+const hasAdminPermission = (guild: any) => {
+    const perm = BigInt(guild.permissions);
+    const ADMIN = 0x8n;
+    return (perm & ADMIN) === ADMIN;
 };
 const fetchGuildsWithAdminPermissions = async (accessToken: string) => {
     try {

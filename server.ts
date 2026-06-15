@@ -1580,7 +1580,7 @@ const fetchGuildsWithAdminPermissions = async (accessToken: string) => {
 
         const guildsWithAdminPerms = guildsData
             .filter((guild: any) => {
-                if (hasAdminPermission(guild.permissions)) {
+                if (hasAdminPermission(guild)) {
                     return true;
                 }
                 return false;

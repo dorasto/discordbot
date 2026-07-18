@@ -1145,7 +1145,7 @@ const youtubeLiveEmbeds = async (item: IYoutubeLive, index: number) => {
                 );
             }
 
-            const vod = dataLive.vods.find(
+            const vod = dataLive?.vods?.find(
                 (v: any) => v.video_id === item.vod_id
             );
 
